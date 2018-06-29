@@ -4,7 +4,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>713c500b-ce20-4097-820d-26092ba82ad6</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>math.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -21,7 +22,28 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="math.py" />
+    <Folder Include="notation\" />
+    <Folder Include="number_theory\" />
+    <Folder Include="finite_difference\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="notation\multi_index.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="notation\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="number_theory\combinatorics.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="number_theory\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="finite_difference\differential.py" />
+    <Compile Include="finite_difference\schema.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="finite_difference\__init__.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
