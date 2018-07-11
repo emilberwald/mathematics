@@ -21,20 +21,20 @@ class tensor(dict):
 		r"""scalar product
 		(DEFINITION) Compatability of tensor scalar multiplication with vector scalar multiplication
 		:math::
-			\lambda\cdot(a\otimes b) = (\lambda \cdot a)\otimes b = a\otimes(\lambda \cdot b)
+			c\cdot \mathsf{t} = c\cdot(\mathbf{t_1}\otimes \mathbf{t_2}) = (c \cdot \mathbf{t_1})\otimes \mathbf{t_2} = \mathbf{t_1}\otimes(c \cdot \mathbf{t_2})
 		(GUESS) Compatability of tensor scalar multiplication with field multiplication
 		:math::
-			\lambda\cdot(c\cdot_F a\otimes b) = (\lambda \cdot_F c)a\otimes b
-		(GUESS) Distributivity of scalar multiplication with respect to vector addition
+			c_1\cdot(c_2\cdot (\mathsf{t_1}\otimes \mathsf{t_2})) = (c_1 \cdot_F c_2)\mathsf{t_1}\otimes \mathsf{t_2}
+		(GUESS) Distributivity of scalar multiplication with respect to tensor addition
 		:math::
-			\lambda\cdot(a\otimes b + c\otimes d) = \lambda\cdot(a\otimes b) + \lambda\cdot(c\otimes d) 
+			c_1\cdot(\mathsf{t_1}\otimes \mathsf{t_2} + \mathsf{t_3}\otimes \mathsf{t_4}) = c_1\cdot(\mathsf{t_1}\otimes \mathsf{t_2}) + c_1\cdot(\mathsf{t_3}\otimes \mathsf{t_4}) 
 		(GUESS) The scalar can be distributed into the coefficient of each pure tensor term.
 		
-		:param self: vector
+		:param self: tensor
+		:type self: [tensor]
 		:param scalar: scalar
-		:type scalar: [type]
-		:return: 
-		:rtype: [type]
+		:return: scaled tensor 
+		:rtype: [tensor]
 		"""
 
 		return tensor({
@@ -51,15 +51,23 @@ class tensor(dict):
 			v_1\otimes (w_1+w_2) = v_1\otimes w_1 + v_1\otimes w_2
 		(GUESS): Distributivity of scalar multiplication with respect to field addition
 		:math::
-			(c_1 + c_2)(e_i\otimes e_j) = c_1 (e_i \otimes e_j) + c_2 (e_i\otimes \ej)
+			(c_1 + c_2)(e_i\otimes e_j) = c_1 (e_i \otimes e_j) + c_2 (e_i\otimes e_j)
 
 		We want to distribute the addition as much as possible.
 		The internal state of the tensor is in terms of pure tensors of the vector bases.
 
 		:param self: tensor
 		:type self: [tensor]
-		:param B: the tensor(-like) object to add
-		:return: self+B
+		:param B: the tensor to add
+		:type B: [tensor]
+		:return: 
+		
+		:math::
+			\mathsf{self}+\mathsf{B} 
+			= (c_1(\mathsf{e_1_i}) \mathsf{e_1_i})+(c_2(\mathsf{e_2_i}) \mathsf{e_2_i})
+			= \left[\sum_{\mathsf{e_1_k} \notin \{\mathsf{e_2_i}\}} c_1(\mathsf{e_1_k}) \mathsf{e_1_k}\right]
+			+ \left[\sum_{\mathsf{e_2_k} \notin \{\mathsf{e_1_i}\}} c_2(\mathsf{e_2_k}) \mathsf{e_2_k}\right]
+			+ \left[\sum_{\mathsf{e_1_k} \in \{\mathsf{e_2_i}\}} (c_1(\mathsf{e_1_k}) + c_2(\mathsf{e_1_k})) \mathsf{e_1_k}\right]
 		:rtype: [tensor]
 		"""
 
@@ -80,19 +88,25 @@ class tensor(dict):
 	def __sub__(self, B):
 		return self.__add__(-B)
 
-	def without_zeros(self, zero_coefficient=0):
-		return tensor({
-		    base_vector: coefficient
-		    for base_vector, coefficient in self.items()
-		    if coefficient != zero_coefficient
-		})
-
 	@staticmethod
-	def __pure_tensorXpure_tensor(tensor_base_vector_a, tensor_base_vector_b):
+	def _pure_tensorXpure_tensor(e_A, e_B):
+		r"""Tensor product for pure tensors without coefficients.
+		
+		:param e_A: tensor base vector :math::
+			\mathsf{e_A} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_A})-1}
+		:type e_A: [tuple]
+		:param e_B: tensor base vector :math::
+			\mathsf{e_B} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_B})-1}
+		:type e_B: [tuple]
+		:return: :math::
+			\mathsf{e_A}\otimes \mathsf{e_B} = (\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k) \otimes (\bigotimes_{\mathbf{e}_k\in \mathsf{e_B}} \mathbf{e}_k)
+		:rtype: [tuple]
+		"""
+
 		tensor_base_vector_result = list()
-		for ei in tensor_base_vector_a:
+		for ei in e_A:
 			tensor_base_vector_result.append(ei)
-		for ek in tensor_base_vector_b:
+		for ek in e_B:
 			tensor_base_vector_result.append(ek)
 		return tuple(tensor_base_vector_result)
 
@@ -100,25 +114,88 @@ class tensor(dict):
 		r"""Tensor procuct of tensors.
 		(GUESS) This whole function is guesswork. I think the proper term is unbiased monodial category?
 		
-		:param B: [description]
-		:return: :math:`self\otimes B`
-		:rtype: [type]
+		:param self: tensor
+		:type self: [tensor]
+		:param B: tensor
+		:type B: [tensor]
+		:return: :math::
+			\mathsf{self} \otimes \mathsf{B} = (\sum_i c_1^i \mathsf{e_1}_i)\otimes(\sum_i c_2^i \mathsf{e_2}_i) = \sum_i \sum_j (c_1^i\cdot c_2^j)\cdot(\mathsf{e_1}_i \otimes \mathsf{e_2}_j)
+		:rtype: [tensor]
 		"""
 		result = tensor()
 		for tensor_base_vector_self, coefficient_self in self.items():
 			for tensor_base_vector_b, coefficient_b in B.items():
-				tensor_base_vector_result = tensor.__pure_tensorXpure_tensor(
+				tensor_base_vector_result = tensor._pure_tensorXpure_tensor(
 				    tensor_base_vector_self, tensor_base_vector_b)
 				if tensor_base_vector_result not in result:
 					result[
 					    tensor_base_vector_result] = coefficient_self * coefficient_b
 				else:
-					# perhaps this could happen if one of the tensor base vectors are zeroth order?
+					# perhaps this could happen if one of the tensor base vectors are of mixed order?
 					# GUESS: summation best way to handle this?
 					result = result + tensor({
 					    tensor_base_vector_result:
 					    coefficient_self * coefficient_b
 					})
+		return result
+
+	def __call__(self, arg):
+		r"""Tensor product followed by contraction/trace.
+		NOTE: Does not try to match the orders. It assumes the tensor is not mixed-order in such a way so the operation does not work.
+		NOTE: rank is smallest number of pure tensor terms required. order is the number of vector spaces taken in the tensor products.
+	
+		:param self: 
+		:type self: [tensor]
+		:param arg: 
+		:type arg: [tensor]
+		:return: :math::`\mathsf{self}\otimes \mathsf{arg}`, followed by iterated contraction, 
+			matching slots from left, for the order of arg times
+		:rtype: [tensor]
+		"""
+
+		result = self @ arg
+		order_self = max(
+		    [len(tensor_base_vector) for tensor_base_vector in self.keys()])
+		order_arg = max(
+		    [len(tensor_base_vector) for tensor_base_vector in self.keys()])
+		for r in range(0, order_arg):
+			result = result.trace(0, order_self - r)
+		return result
+
+	def trace(
+	    self,
+	    first_slot,
+	    second_slot,
+	    pairing=lambda cov, con: cov(con) if callable(cov) else con(cov)  # the "else"-part is probably related to the double dual isomorphism (V*)* ~ V, ex: v**(f+g) = (f+g)(v) = f(v)+f(g) = v**(f) + v**(g)
+	):
+		r"""Trace/contraction of tensor, over vector space indices as indicated in first_slot and second_slot, 
+		
+		NOTE: Does not work for braided monodial categories
+		:param self: 
+		:type self: tensor
+		:param first_slot: index of first vector space in pairing 
+		:param second_slot: index of second vector space in pairing 
+		:param pairing: :math:`\langle \mathbf{v_1},\mathbf{v_2} \rangle`
+		:return: Contracted tensor.
+			TODO: Write math.
+		:rtype: [tensor]
+		"""
+
+		result = tensor()
+		for tensor_base_vector_self in self:
+			first_element = tensor_base_vector_self[first_slot]
+			second_element = tensor_base_vector_self[second_slot]
+			pairing_factor = pairing(first_element, second_element)
+			coefficient = self[tensor_base_vector_self]
+			contracted_tensor_base_vector = tuple(
+			    tensor_base_vector_self[slot]
+			    for slot in range(0, len(tensor_base_vector_self))
+			    if slot not in (first_slot, second_slot))
+			contracted_summand = tensor({
+			    contracted_tensor_base_vector:
+			    coefficient * pairing_factor
+			})
+			result = result + contracted_summand
 		return result
 
 	class dual:
@@ -157,9 +234,14 @@ class tensor(dict):
 	@staticmethod
 	def multilinear_mapping_tensor_expansion(*vector_bases):
 		"""expands multilinear function as tensor. 
-		
-		NOTE: the coeficcients might be vector valued! Not sure if this works! the codomain of the multilinear mapping might not be R! The duck hopefully quacks and walks like R.
-		:return: [description]
+
+		NOTE: not sure if the math is valid for vector valued multilinear mappings.
+		:param: *vector_bases: Vector space base of each argument of the function.
+		:return: Returns a lambda function which takes the mulilinear function. 
+			:math::
+				f \mapsto \mathsf{F}=
+				f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \cdot \mathbf{e}_{i_1}^{(1)}^{*}\otimes\cdots\otimes\mathbf{e}_{i_k}^{(k)}^{*} 
+				= f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \cdot \mathbf{e}_{(1)}^{i_1}\otimes\cdots\otimes\mathbf{e}_{(k)}^{i_k} 
 		:rtype: [type]
 		"""
 		dual_vectorspace_bases = [
@@ -177,16 +259,6 @@ class tensor(dict):
 		 }) for tensor_index in itertools.product(
 		    *[range(0, len(vector_base)) for vector_base in vector_bases])],tensor())
 
-	def __call__(self, tensor_arg):
-		#assumes that the tensor is not "mixed-order"
-		#NOTE: rank is smallest number of pure tensor terms required. order is the number of vector spaces taken in the tensor products.
-		result = self @ tensor_arg
-		order = max(
-		    [len(tensor_base_vector) for tensor_base_vector in self.keys()])
-		for r in range(0, order):
-			result = result.trace(0, order - r)
-		return result
-
 	@staticmethod
 	def kronecker_delta(dimension):
 		r"""Returns kronecker delta
@@ -201,7 +273,7 @@ class tensor(dict):
 		vector_base = tensor.standard_vector_base(dimension)
 		dual_base = tensor.standard_dual_vector_base(vector_base)
 		return tensor({
-		    tensor.__pure_tensorXpure_tensor(
+		    tensor._pure_tensorXpure_tensor(
 		        (vector_base[i], ), (dual_base[j], )): iversion_bracket(i == j)
 		    for i, j in itertools.product(range(0, dimension), repeat=2)
 		})
@@ -259,6 +331,13 @@ class tensor(dict):
 			result = result + tensor({tuple(tensor_base_vector): coefficient})
 		return result
 
+	def without_zeros(self, zero_coefficient=0):
+		return tensor({
+		    base_vector: coefficient
+		    for base_vector, coefficient in self.items()
+		    if coefficient != zero_coefficient
+		})
+
 	def latex(self):
 		return r' + '.join([
 		    r' \cdot '.join([
@@ -269,34 +348,3 @@ class tensor(dict):
 
 	def __str__(self):
 		return LatexNodes2Text().latex_to_text(self.latex())
-
-	#A=tensor({((1,0),):1,((0,1),):2});B=tensor({((1,0),):3});
-	def trace(
-	    self,
-	    first_slot,
-	    second_slot,
-	    pairing=lambda cov, con: cov(con) if callable(cov) else con(cov)
-	):  # the "else"-part is probably related to the double dual isomorphism (V*)* ~ V
-		"""Trace/contraction of tensor
-		
-		NOTE: Does not work for braided monodial categories
-		:return: [description]
-		:rtype: [type]
-		"""
-
-		result = tensor()
-		for tensor_base_vector_self in self:
-			first_element = tensor_base_vector_self[first_slot]
-			second_element = tensor_base_vector_self[second_slot]
-			pairing_factor = pairing(first_element, second_element)
-			coefficient = self[tensor_base_vector_self]
-			contracted_tensor_base_vector = tuple(
-			    tensor_base_vector_self[slot]
-			    for slot in range(0, len(tensor_base_vector_self))
-			    if slot not in (first_slot, second_slot))
-			contracted_summand = tensor({
-			    contracted_tensor_base_vector:
-			    coefficient * pairing_factor
-			})
-			result = result + contracted_summand
-		return result
