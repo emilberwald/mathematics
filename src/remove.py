@@ -83,12 +83,16 @@ def main():
 		print(x.latex())
 		print(A(x).latex())
 
-		V = sympy.symbols("e_{1:2}")
+		V = sympy.symbols("e_{1:3}")
+
+		#clifford.set_symmetric_bilinear_form(lambda x, y: sum([a * b for a, b in zip(x, y)]))
+		clifford.set_symmetric_bilinear_form(lambda x, y: float(x == y))
 		a = clifford.symbolic("a", V, (1, 0))
 		b = clifford.symbolic("b", V, (1, 0))
 		print(a.latex())
 		print(b.latex())
 		print((a @ b).latex())
+		print((a @ b).simplify().latex())
 		#sys.settrace(tracer)
 		#A + B
 		#print((A + B).latex())

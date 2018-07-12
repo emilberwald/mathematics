@@ -17,9 +17,6 @@ class clifford(tensor):
 
 		cls.symmetric_bilinear_form = induced
 
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-
 	def __eq__(self, other):
 		"""Overrides the default implementation, want to check that the quadratic form is equal as well"""
 		if type(other) is type(self):
@@ -31,7 +28,7 @@ class clifford(tensor):
 		return hash(tuple(sorted(self.__dict__.items())))
 
 	def quotient(self):
-		result = clifford()
+		result = type(self)()
 		for tensor_base_vector in self:
 			result_base_vectors = list()
 			coefficient = self[tensor_base_vector]
@@ -40,13 +37,16 @@ class clifford(tensor):
 			for v_i in Vcurrent:
 				v_j = next(Vlookahead, None)
 				if v_j and v_i == v_j:
-					coefficient = coefficient * self.symmetric_bilinear_form(
-					    v_i, v_j)
+					coefficient = coefficient * type(
+					    self).symmetric_bilinear_form(v_i, v_j)
+					next(Vcurrent, None)
+					next(Vlookahead, None)
 				else:
 					result_base_vectors.append(v_i)
-			result = result + clifford(
-			    self.symmetric_bilinear_form,
-			    {tensor._puretensorproduct(*result_base_vectors): coefficient})
+			result = result + type(self)({
+			    tensor._puretensorproduct(*[result_base_vectors]):
+			    coefficient
+			})
 		return result
 
 	def swap(self, adjacent_transposition):
@@ -61,33 +61,33 @@ class clifford(tensor):
 		"""
 
 		def clifford_swap(e_i, e_j):
-			return clifford({
-			    tensor._puretensorproduct(e_j, e_i):
+			return type(self)({
+			    tensor._puretensorproduct((e_j, ), (e_i, )):
 			    -1,
 			    tensor._puretensorproduct():
-			    2 * self.symmetric_bilinear_form(e_i, e_j)
+			    2 * type(self).symmetric_bilinear_form(e_i, e_j)
 			})
 
-		result = clifford()
+		result = type(self)()
 		for base_tensor in self:
 			#ensure that the root indices are swappable
 			if max(adjacent_transposition) <= len(base_tensor):
-				prefix = clifford({
+				prefix = type(self)({
 				    tensor._puretensorproduct(*base_tensor[0:min(adjacent_transposition)]):
 				    self[base_tensor]
 				})
 				root = clifford_swap(*base_tensor[min(
 				    adjacent_transposition):max(adjacent_transposition) + 1])
-				postfix = clifford({
+				postfix = type(self)({
 				    tensor._puretensorproduct(*base_tensor[max(adjacent_transposition) + 1:]):
 				    1
 				})
 				result = result + prefix @ root @ postfix
 			else:
-				result = result + clifford({base_tensor: self[base_tensor]})
+				result = result + type(self)({base_tensor: self[base_tensor]})
 		return result
 
-	def braiding_map_pure_tensor(self, index_permutation):
+	def braiding_map(self, index_permutation):
 		r"""Overrides the functionality to incorporate 
 		:math::
 			v\otimes w = -w\otimes v + (2\cdot \langle v,w\rangle) \cdot 1
@@ -110,9 +110,20 @@ class clifford(tensor):
 			    e: [i for i, ei in enumerate(e_A) if ei == e]
 			    for e in set(e_A)
 			}
-			for e_I,I in indices_by_value.items():
+			for e_I, I in indices_by_value.items():
 				if len(I) > 1:
-					permutation = I + [i in range(0,len(e_A)) if i not in I]
-					result = self.braiding_map_pure_tensor(permutation).quotient()
-					return result.step()
+					permutation = I + [
+					    i for i in range(0, len(e_A)) if i not in I
+					]
+					result = self.braiding_map(
+					    permutation).quotient().without_zeros()
+					return result.simplify()
+			for permutable in [
+			    E for E in self if E != e_A and set(E) == set(e_A)
+			]:
+				other = clifford({permutable: self[permutable]})
+				permutation = [e_A.index(o) for o in permutable]
+				result = (self - other + other.braiding_map(permutation)
+				          ).quotient().without_zeros()
+				return result.simplify()
 		return self

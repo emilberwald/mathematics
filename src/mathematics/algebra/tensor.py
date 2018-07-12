@@ -168,7 +168,7 @@ class tensor(dict):
 		    "The default pairing did not work, need to provide a user defined pairing."
 		)
 
-	def braiding_map_pure_tensor(self, e_A, index_permutation_generator):
+	def braiding_map(self, e_A, index_permutation_generator):
 		return type(self)({
 		    tuple(e_A[i] for i in index_permutation_generator): 1
 		})
@@ -176,7 +176,7 @@ class tensor(dict):
 	def trace(self, first_slot, second_slot, pairing=None):
 		r"""Trace/contraction of tensor, over vector space indices as indicated in first_slot and second_slot, 
 		
-		NOTE: Might not work for braided monodial categories since it does not contract until fixpoint (it calls braiding_map_pure_tensor though)
+		NOTE: Might not work for braided monodial categories since it does not contract until fixpoint (it calls braiding_map though)
 		NOTE: the default pairing tries both cov(con) and con(cov)
 		:param self: 
 		:type self: tensor
@@ -191,7 +191,7 @@ class tensor(dict):
 
 		result = type(self)()
 		for tensor_base_vector_self in self:
-			braided_tensor = self.braiding_map_pure_tensor(
+			braided_tensor = self.braiding_map(
 			    tensor_base_vector_self, [first_slot] + [second_slot] + [
 			        slot for slot in range(0, len(tensor_base_vector_self))
 			        if slot not in (first_slot, second_slot)
