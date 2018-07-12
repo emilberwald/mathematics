@@ -1,6 +1,7 @@
 # coding: utf8
 import sympy
 from mathematics.algebra.tensor import tensor
+from mathematics.algebra.clifford import clifford
 
 #pycallgraph ?
 
@@ -77,9 +78,17 @@ def main():
 		V = sympy.symbols("e_{0:3}")
 		A = tensor.symbolic("A", V, (1, 1))
 		x = tensor.symbolic("x", V, (1, 0))
+
 		print(A.latex())
 		print(x.latex())
 		print(A(x).latex())
+
+		V = sympy.symbols("e_{1:2}")
+		a = clifford.symbolic("a", V, (1, 0))
+		b = clifford.symbolic("b", V, (1, 0))
+		print(a.latex())
+		print(b.latex())
+		print((a @ b).latex())
 		#sys.settrace(tracer)
 		#A + B
 		#print((A + B).latex())

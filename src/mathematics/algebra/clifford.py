@@ -1,5 +1,5 @@
-from mathematics.algebra.tensor import tensor
 import itertools
+from mathematics.algebra.tensor import tensor
 from mathematics.number_theory.combinatorics import permutation_to_adjacent_transpositions
 
 
@@ -47,6 +47,7 @@ class clifford(tensor):
 			result = result + clifford(
 			    self.symmetric_bilinear_form,
 			    {tensor._puretensorproduct(*result_base_vectors): coefficient})
+		return result
 
 	def swap(self, adjacent_transposition):
 		r"""
@@ -86,13 +87,11 @@ class clifford(tensor):
 				result = result + clifford({base_tensor: self[base_tensor]})
 		return result
 
-	def braiding_map_pure_tensor(self, e_A, index_permutation):
+	def braiding_map_pure_tensor(self, index_permutation):
 		r"""Overrides the functionality to incorporate 
 		:math::
 			v\otimes w = -w\otimes v + (2\cdot \langle v,w\rangle) \cdot 1
 		which is valid if the characteristic of the unital associative algebra is not 2.
-		:param e_A: [description]
-		:type e_A: [type]
 		:param index_permutation: [description]
 		:type index_permutation: [type]
 		:return: [description]
@@ -104,3 +103,16 @@ class clifford(tensor):
 		for adjacent_transposition in adjacent_transpositions:
 			result = result.swap(adjacent_transposition)
 		return result
+
+	def simplify(self):
+		for e_A in self:
+			indices_by_value = {
+			    e: [i for i, ei in enumerate(e_A) if ei == e]
+			    for e in set(e_A)
+			}
+			for e_I,I in indices_by_value.items():
+				if len(I) > 1:
+					permutation = I + [i in range(0,len(e_A)) if i not in I]
+					result = self.braiding_map_pure_tensor(permutation).quotient()
+					return result.step()
+		return self
