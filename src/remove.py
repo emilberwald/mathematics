@@ -74,12 +74,15 @@ from mathematics.algebra.tensor import tensor
 
 def main():
 	try:
-		A = tensor.symbolic(sympy.symbols("e_{0:3}"), (1, 1), "A")
-		B = tensor.symbolic(sympy.symbols("e_{0:3}"), (1, 1), "B")
-
+		V = sympy.symbols("e_{0:3}")
+		A = tensor.symbolic("A", V, (1, 1))
+		x = tensor.symbolic("x", V, (1, 0))
+		print(A.latex())
+		print(x.latex())
+		print(A(x).latex())
 		#sys.settrace(tracer)
-		A + B
-		print((A + B).latex())
+		#A + B
+		#print((A + B).latex())
 		#sys.settrace(None)
 	finally:
 		pass
