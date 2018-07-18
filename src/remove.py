@@ -1,7 +1,7 @@
 # coding: utf8
 import sympy
 from mathematics.algebra.tensor import tensor
-from mathematics.algebra.clifford import clifford
+from mathematics.algebra.clifford import *
 
 #pycallgraph ?
 
@@ -86,13 +86,16 @@ def main():
 		V = sympy.symbols("e_{1:3}")
 
 		#clifford.set_symmetric_bilinear_form(lambda x, y: sum([a * b for a, b in zip(x, y)]))
-		clifford.set_symmetric_bilinear_form(lambda x, y: float(x == y))
-		a = clifford.symbolic("a", V, (1, 0))
-		b = clifford.symbolic("b", V, (1, 0))
+		clifford_dotprod = clifford_constructor("clifford_dotprod",
+		                                        lambda x, y: float(x == y))
+		a = clifford_dotprod.symbolic("a", V, (1, 0))
+		b = clifford_dotprod.symbolic("b", V, (1, 0))
 		print(a.latex())
 		print(b.latex())
 		print((a @ b).latex())
 		print((a @ b).simplify().latex())
+		print((a @ x).latex())
+		print((a @ x).simplify().latex())
 		#sys.settrace(tracer)
 		#A + B
 		#print((A + B).latex())

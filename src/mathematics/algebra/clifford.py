@@ -3,19 +3,29 @@ from mathematics.algebra.tensor import tensor
 from mathematics.number_theory.combinatorics import permutation_to_adjacent_transpositions
 
 
+def class_factory(name, baseclasses, **kwargs):
+	if name in globals():
+		return globals()[name]
+	else:
+		result = type(name, baseclasses, kwargs)
+		globals()[name] = result
+		return globals()[name]
+
+
+def induced_symmetric_bilinar_form(quadratic_form):
+	def symmetric_bilinear_form(u, v):
+		return 1 / 4 * (quadratic_form(u + v) - quadratic_form(u - v))
+
+	return symmetric_bilinear_form
+
+
+def clifford_constructor(name, symmetric_bilinear_form):
+	return class_factory(
+	    name, (clifford, ), symmetric_bilinear_form=symmetric_bilinear_form)
+
+
 class clifford(tensor):
 	symmetric_bilinear_form = lambda x, y: 0  #could this be improved with metaclasses ??
-
-	@classmethod
-	def set_symmetric_bilinear_form(cls, symmetric_bilinear_form):
-		cls.symmetric_bilinear_form = symmetric_bilinear_form
-
-	@classmethod
-	def set_induced_symmetric_bilinear_form(cls, quadratic_form):
-		def induced(u, v):
-			return 1 / 4 * (quadratic_form(u + v) - quadratic_form(u - v))
-
-		cls.symmetric_bilinear_form = induced
 
 	def __eq__(self, other):
 		"""Overrides the default implementation, want to check that the quadratic form is equal as well"""
@@ -54,7 +64,9 @@ class clifford(tensor):
 		Swaps the tensor order of the basis in place
 		:math::
 			v\otimes w = -w\otimes v + (2\cdot \langle v,w\rangle) \cdot 1
-
+		based on :math:`(u+v)\otimes(u+v) = u\otimes u + u\otimes v + v\otimes u + v\otimes v` being an ideal that is quotiented,
+		so it has the representative [0] since 0 + Ideal = [0] or something. 
+		NOTE: perhaps this class can be generalized to any ideals? That way the weyl algebra can be included (:math:`u\otimes v - v\otimes u -\omega(u,v) = [0] <=> u\otimes v = [0] + v\otimes u + \omega(u,v)` since it is the ideal in weyl algebra).
 		:param self: [description]
 		:type self: [tensor]
 		:param first_slot: slot of u in expression :math:`\cdots\otimes u \otimes v\otimes\cdots`
