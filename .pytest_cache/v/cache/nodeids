@@ -1,0 +1,4 @@
+[
+  "src/mathematics/calculus/test_calculus.py::TestCurl::test_curl",
+  "src/mathematics/notation/test_multi_index.py::test_multi_index::test_factorial"
+]

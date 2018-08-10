@@ -1,2 +1,12 @@
 {
+	"python.linting.pylintArgs": [
+		"--init-hook",
+		"import sys; sys.path.append('C:/development/python/mathematics/src/');",
+		"--indent-string",
+		"\t",
+		"--indent-after-paren",
+		"1",
+		"--disable",
+		"C0330"
+	],
 }

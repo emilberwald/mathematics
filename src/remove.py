@@ -1,7 +1,7 @@
 # coding: utf8
 import sympy
-from mathematics.algebra.tensor import tensor
-from mathematics.algebra.clifford import *
+from mathematics.algebra.tensor import tensor, dual
+from mathematics.algebra.clifford import clifford, clifford_constructor
 
 #pycallgraph ?
 
@@ -76,8 +76,8 @@ from mathematics.algebra.clifford import *
 def main():
 	try:
 		V = sympy.symbols("e_{0:3}")
-		A = tensor.symbolic("A", V, (1, 1))
-		x = tensor.symbolic("x", V, (1, 0))
+		A = tensor.symbolic("A", V, (1, 1), dual.standard_base_dual_vectorspace)
+		x = tensor.symbolic("x", V, (1, 0), dual.standard_base_dual_vectorspace)
 
 		print(A.latex())
 		print(x.latex())
@@ -88,8 +88,10 @@ def main():
 		#clifford.set_symmetric_bilinear_form(lambda x, y: sum([a * b for a, b in zip(x, y)]))
 		clifford_dotprod = clifford_constructor("clifford_dotprod",
 		                                        lambda x, y: float(x == y))
-		a = clifford_dotprod.symbolic("a", V, (1, 0))
-		b = clifford_dotprod.symbolic("b", V, (1, 0))
+		a = clifford_dotprod.symbolic("a", V, (1, 0),
+		                              dual.standard_base_dual_vectorspace)
+		b = clifford_dotprod.symbolic("b", V, (1, 0),
+		                              dual.standard_base_dual_vectorspace)
 		print(a.latex())
 		print(b.latex())
 		print((a @ b).latex())

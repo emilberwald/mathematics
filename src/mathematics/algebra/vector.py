@@ -1,3 +1,4 @@
+__all__ = ["vector"]
 from autologging import traced
 
 
@@ -20,7 +21,7 @@ class vector(tuple):
 		return vector((ai - bi for ai, bi in zip(self, b)))
 
 	def __rmul__(self, a):
-		"""scalar product
+		r"""scalar product
 		
 		:param self: vector
 		:param a: scalar

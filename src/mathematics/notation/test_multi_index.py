@@ -1,5 +1,5 @@
 import unittest
-from mathematics.notation.multi_index import *
+from .multi_index import *
 
 
 class test_multi_index(unittest.TestCase):

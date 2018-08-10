@@ -1,3 +1,4 @@
+__all__ = ["induced_symmetric_bilinar_form", "clifford_constructor"]
 import itertools
 from mathematics.algebra.tensor import tensor
 from mathematics.number_theory.combinatorics import permutation_to_adjacent_transpositions
@@ -39,22 +40,22 @@ class clifford(tensor):
 
 	def quotient(self):
 		result = type(self)()
-		for tensor_base_vector in self:
-			result_base_vectors = list()
-			coefficient = self[tensor_base_vector]
-			Vcurrent, Vlookahead = itertools.tee(tensor_base_vector, 2)
-			next(Vlookahead, None)
-			for v_i in Vcurrent:
-				v_j = next(Vlookahead, None)
+		for indices_self in self:
+			indices_result = list()
+			coefficient = self[indices_self]
+			current_v, lookahead_v = itertools.tee(indices_self, 2)
+			next(lookahead_v, None)
+			for v_i in current_v:
+				v_j = next(lookahead_v, None)
 				if v_j and v_i == v_j:
 					coefficient = coefficient * type(
 					    self).symmetric_bilinear_form(v_i, v_j)
-					next(Vcurrent, None)
-					next(Vlookahead, None)
+					next(current_v, None)
+					next(lookahead_v, None)
 				else:
-					result_base_vectors.append(v_i)
+					indices_result.append(v_i)
 			result = result + type(self)({
-			    tensor._puretensorproduct(*[result_base_vectors]):
+			    tensor._merge_indices(*[indices_result]):
 			    coefficient
 			})
 		return result
@@ -74,68 +75,78 @@ class clifford(tensor):
 
 		def clifford_swap(e_i, e_j):
 			return type(self)({
-			    tensor._puretensorproduct((e_j, ), (e_i, )):
+			    tensor._merge_indices((e_j, ), (e_i, )):
 			    -1,
-			    tensor._puretensorproduct():
+			    tensor._merge_indices():
 			    2 * type(self).symmetric_bilinear_form(e_i, e_j)
 			})
 
 		result = type(self)()
-		for base_tensor in self:
-			#ensure that the root indices are swappable
-			if max(adjacent_transposition) <= len(base_tensor):
+		for indices_self in self:
+			#ensure that the swap can be made with the available slots
+			if max(adjacent_transposition) <= len(indices_self):
 				prefix = type(self)({
-				    tensor._puretensorproduct(*base_tensor[0:min(adjacent_transposition)]):
-				    self[base_tensor]
+				    tensor._merge_indices(*indices_self[0:min(adjacent_transposition)]):
+				    self[indices_self]
 				})
-				root = clifford_swap(*base_tensor[min(
+				root = clifford_swap(*indices_self[min(
 				    adjacent_transposition):max(adjacent_transposition) + 1])
 				postfix = type(self)({
-				    tensor._puretensorproduct(*base_tensor[max(adjacent_transposition) + 1:]):
+				    tensor._merge_indices(*indices_self[max(adjacent_transposition) + 1:]):
 				    1
 				})
 				result = result + prefix @ root @ postfix
 			else:
-				result = result + type(self)({base_tensor: self[base_tensor]})
-		return result
+				result = result + type(self)({indices_self: self[indices_self]})
+		self = result
+		return self
 
-	def braiding_map(self, index_permutation):
+	def braiding_map(self, slot_permutation):
 		r"""Overrides the functionality to incorporate 
 		:math::
 			v\otimes w = -w\otimes v + (2\cdot \langle v,w\rangle) \cdot 1
 		which is valid if the characteristic of the unital associative algebra is not 2.
-		:param index_permutation: [description]
-		:type index_permutation: [type]
+		:param slot_permutation: [description]
+		:type slot_permutation: [type]
 		:return: [description]
 		:rtype: [type]
 		"""
 		adjacent_transpositions = permutation_to_adjacent_transpositions(
-		    index_permutation)
-		result = self
+		    slot_permutation)
 		for adjacent_transposition in adjacent_transpositions:
-			result = result.swap(adjacent_transposition)
-		return result
+			self = self.swap(adjacent_transposition)
+		return self
 
 	def simplify(self):
-		for e_A in self:
-			indices_by_value = {
-			    e: [i for i, ei in enumerate(e_A) if ei == e]
-			    for e in set(e_A)
+		for indices_of_summand in self:
+			slots_with_same_index_by_index = {
+			    e: [i for i, ei in enumerate(indices_of_summand) if ei == e]
+			    for e in set(indices_of_summand)
 			}
-			for e_I, I in indices_by_value.items():
-				if len(I) > 1:
-					permutation = I + [
-					    i for i in range(0, len(e_A)) if i not in I
+			for index, slots_with_same_index in slots_with_same_index_by_index.items(
+			):
+				if len(slots_with_same_index) > 1:
+					permutation = slots_with_same_index + [
+					    slot for slot in range(0, len(indices_of_summand))
+					    if slot not in slots_with_same_index
 					]
-					result = self.braiding_map(
-					    permutation).quotient().without_zeros()
-					return result.simplify()
-			for permutable in [
-			    E for E in self if E != e_A and set(E) == set(e_A)
+					return self.braiding_map(
+					    permutation).quotient().without_zeros().simplify()
+			for permutable_indices_of_other_summand in [
+			    indices_of_other_summand for indices_of_other_summand in self
+			    if indices_of_other_summand != indices_of_summand
+			    and set(indices_of_other_summand) == set(indices_of_summand)
 			]:
-				other = clifford({permutable: self[permutable]})
-				permutation = [e_A.index(o) for o in permutable]
-				result = (self - other + other.braiding_map(permutation)
-				          ).quotient().without_zeros()
-				return result.simplify()
+				other_summand_to_permute = clifford({
+				    permutable_indices_of_other_summand:
+				    self[permutable_indices_of_other_summand]
+				})
+				slot_permutation = [
+				    indices_of_summand.index(slot)
+				    for slot in permutable_indices_of_other_summand
+				]
+				self = (self - other_summand_to_permute +
+				        other_summand_to_permute.braiding_map(slot_permutation)
+				        ).quotient().without_zeros().simplify()
+				return self
 		return self

@@ -1,3 +1,4 @@
+__all__ = ["tensor"]
 from autologging import traced
 import copy
 from mathematics.number_theory.combinatorics import integer_partitions
@@ -8,10 +9,62 @@ import sympy
 from pylatexenc.latex2text import LatexNodes2Text
 
 
+class dual:
+	def __init__(self, vector_base, result_type, i):
+		self.vector_base = vector_base
+		self.result_type = result_type
+		self.i = i
+
+	def __call__(self, vector_base_vector):
+		return self.result_type(
+		    self.vector_base.index(vector_base_vector) == self.i)
+
+	def __eq__(self, other):
+		"""Overrides the default implementation, want to check if semantics are equal"""
+		if type(other) is type(self):
+			return self.__dict__ == other.__dict__
+		return NotImplemented
+
+	def __hash__(self):
+		"""Overrides the default implementation"""
+		return hash(tuple(sorted(self.__dict__.items())))
+
+	def __str__(self):
+		return r"{e_i}^{{*}}".format(e_i=self.vector_base[self.i])
+
+	@staticmethod
+	def default_pairing(cov, con):
+		if (callable(cov)):
+			try:
+				#assuming the first argument is the dual of the second argument...
+				return cov(con)
+			except:
+				pass
+		if (callable(con)):
+			try:
+				#assuming the second argument is the dual of the first argument...
+				return con(cov)
+			except:
+				pass
+		raise TypeError(
+		    "The default pairing did not work, need to provide a user defined pairing."
+		)
+
+	@staticmethod
+	def standard_base_dual_vectorspace(vector_base, result_type=int):
+		return tuple(
+		    dual(vector_base, result_type, i)
+		    for i in range(0, len(vector_base)))
+
+	@staticmethod
+	def standard_base_vectorspace(dimension):
+		return tuple(integer_partitions(dimension, 1))
+
+
 @traced
 class tensor(dict):
 	@staticmethod
-	def _puretensorproduct(*base_tensors):
+	def _merge_indices(*base_tensors):
 		r"""Tensor product for pure tensors without coefficients.
 		
 		:param base_tensors: each argument is a tensor base vector :math::
@@ -111,18 +164,16 @@ class tensor(dict):
 		:rtype: [tensor]
 		"""
 		result = type(self)()
-		for tensor_base_vector_self, coefficient_self in self.items():
-			for tensor_base_vector_b, coefficient_b in B.items():
-				tensor_base_vector_result = tensor._puretensorproduct(
-				    tensor_base_vector_self, tensor_base_vector_b)
-				if tensor_base_vector_result not in result:
-					result[
-					    tensor_base_vector_result] = coefficient_self * coefficient_b
+		for indices_self, coefficient_self in self.items():
+			for indices_b, coefficient_b in B.items():
+				indices_result = tensor._merge_indices(indices_self, indices_b)
+				if indices_result not in result:
+					result[indices_result] = coefficient_self * coefficient_b
 				else:
 					# perhaps this could happen if one of the tensor base vectors are of mixed order?
 					# GUESS: summation best way to handle this?
 					result = result + type(self)({
-					    tensor_base_vector_result:
+					    indices_result:
 					    coefficient_self * coefficient_b
 					})
 		return result
@@ -130,7 +181,7 @@ class tensor(dict):
 	def __call__(self, arg):
 		r"""Tensor product followed by contraction/trace, adjacent pairs in tensor product
 		NOTE: Does not try to match the orders. It assumes the tensor is not mixed-order in such a way so the operation does not work.
-		NOTE: rank is smallest number of pure tensor terms required. order is the number of vector spaces taken in the tensor products.
+		NOTE: rank is smallest number of pure tensor terms required. degree/ order is the number of vector spaces taken in the tensor products.
 	
 		:param self: 
 		:type self: [tensor]
@@ -150,27 +201,10 @@ class tensor(dict):
 			result = result.trace(order_self - r - 1, order_self - r)
 		return result
 
-	@staticmethod
-	def default_pairing(cov, con):
-		if (callable(cov)):
-			try:
-				#assuming the first argument is the dual of the second argument...
-				return cov(con)
-			except:
-				pass
-		if (callable(con)):
-			try:
-				#assuming the second argument is the dual of the first argument...
-				return con(cov)
-			except:
-				pass
-		raise TypeError(
-		    "The default pairing did not work, need to provide a user defined pairing."
-		)
-
-	def braiding_map(self, e_A, index_permutation_generator):
+	def braiding_map(self, slot_permutation):
 		return type(self)({
-		    tuple(e_A[i] for i in index_permutation_generator): 1
+		    tuple(indices[slot] for slot in slot_permutation): self[indices]
+		    for indices in self
 		})
 
 	def trace(self, first_slot, second_slot, pairing=None):
@@ -187,65 +221,33 @@ class tensor(dict):
 			TODO: Write math.
 		:rtype: [tensor]
 		"""
-		pairing = tensor.default_pairing if pairing is None else pairing
+		pairing = dual.default_pairing if pairing is None else pairing
 
 		result = type(self)()
-		for tensor_base_vector_self in self:
-			braided_tensor = self.braiding_map(
-			    tensor_base_vector_self, [first_slot] + [second_slot] + [
-			        slot for slot in range(0, len(tensor_base_vector_self))
-			        if slot not in (first_slot, second_slot)
-			    ])
-			for tensor_base_vector_braided_tensor in braided_tensor:
-				pairing_factor = pairing(
-				    *tensor_base_vector_braided_tensor[0:2])
-				coefficient = self[tensor_base_vector_self] * braided_tensor[tensor_base_vector_braided_tensor]
+		for indices_self in self:
+			braided_tensor = type(self)({
+			    indices_self: self[indices_self]
+			}).braiding_map([first_slot] + [second_slot] + [
+			    slot for slot in range(0, len(indices_self))
+			    if slot not in (first_slot, second_slot)
+			])
+			for braided_indices in braided_tensor:
+				coefficient = braided_tensor[braided_indices]
+				pairing_factor = pairing(*braided_indices[0:2])
 				contracted_summand = type(self)({
-				    tensor_base_vector_braided_tensor[2:]:
+				    braided_indices[2:]:
 				    coefficient * pairing_factor
 				})
 				result = result + contracted_summand
 		return result
 
-	class dual:
-		def __init__(self, vectorspace_base, result_type, i):
-			self.vectorspace_base = vectorspace_base
-			self.result_type = result_type
-			self.i = i
-
-		def __call__(self, vectorspace_base_vector):
-			return self.result_type(
-			    self.vectorspace_base.index(vectorspace_base_vector) == self.i)
-
-		def __eq__(self, other):
-			"""Overrides the default implementation, want to check if semantics are equal"""
-			if type(other) is type(self):
-				return self.__dict__ == other.__dict__
-			return NotImplemented
-
-		def __hash__(self):
-			"""Overrides the default implementation"""
-			return hash(tuple(sorted(self.__dict__.items())))
-
-		def __str__(self):
-			return r"{e_i}^{{*}}".format(e_i=self.vectorspace_base[self.i])
-
-	@staticmethod
-	def standard_base_dual_vectorspace(vectorspace_base, result_type=int):
-		return tuple(
-		    tensor.dual(vectorspace_base, result_type, i)
-		    for i in range(0, len(vectorspace_base)))
-
-	@staticmethod
-	def standard_base_vectorspace(dimension):
-		return tuple(integer_partitions(dimension, 1))
-
 	@classmethod
-	def multilinear_mapping_tensor_expansion(cls, *vectorspace_bases):
+	def multilinear_mapping_tensor_expansion(cls, vector_base_to_dual_base,
+	                                         *vector_bases):
 		r"""expands multilinear function as tensor. 
 
 		NOTE: not sure if the math is valid for vector valued multilinear mappings.
-		:param: *vectorspace_bases: Vector space base of each argument of the function.
+		:param: *vector_bases: Vector space base of each argument of the function.
 		:return: Returns a lambda function which takes the mulilinear function. 
 			:math::
 				f \mapsto \mathsf{F}=
@@ -253,82 +255,83 @@ class tensor(dict):
 				= f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \cdot \mathbf{e}_{(1)}^{i_1}\otimes\cdots\otimes\mathbf{e}_{(k)}^{i_k} 
 		:rtype: [type]
 		"""
-		dual_vectorspace_bases = [
-		    cls.standard_base_dual_vectorspace(vectorspace_base)
-		    for vectorspace_base in vectorspace_bases
+		dual_vector_bases = [
+		    vector_base_to_dual_base(vector_base)
+		    for vector_base in vector_bases
 		]
-		return lambda f, vectorspace_bases=vectorspace_bases, dual_bases=dual_vectorspace_bases: functools.reduce(operator.add,[cls({
+		return lambda f, vector_bases=vector_bases, dual_bases=dual_vector_bases: functools.reduce(operator.add,[cls({
 		     tuple(dual_bases[vector_space_index][tensor_index[vector_space_index]] for vector_space_index in range(
 		               0, len(dual_bases))):
 		     f(*[
-		         vectorspace_bases[vector_space_index]
+		         vector_bases[vector_space_index]
 		         [tensor_index[vector_space_index]]
-		         for vector_space_index in range(0, len(vectorspace_bases))
+		         for vector_space_index in range(0, len(vector_bases))
 		     ])
 		 }) for tensor_index in itertools.product(
-		    *[range(0, len(vectorspace_base)) for vectorspace_base in vectorspace_bases])],cls())
+		    *[range(0, len(vector_base)) for vector_base in vector_bases])],cls())
 
 	@classmethod
-	def mixed_tensor(cls, vectorspace_base, rank, dual_base=None):
-		contravariant_rank, covariant_rank = rank
-		dual_base = cls.standard_base_dual_vectorspace(
-		    vectorspace_base) if dual_base is None else dual_base
+	def mixed_tensor(cls, vector_base, order, vector_base_to_dual_base):
+		contravariant_order, covariant_order = order
+		dual_base = vector_base_to_dual_base(vector_base)
 		return cls.multilinear_mapping_tensor_expansion(
-		    *[dual_base] * contravariant_rank,
-		    *[vectorspace_base] * covariant_rank)
+		    vector_base_to_dual_base, *[dual_base] * contravariant_order,
+		    *[vector_base] * covariant_order)
 
 	@classmethod
-	def kronecker_delta(cls, vectorspace_base):
+	def kronecker_delta(cls, vector_base, vector_base_to_dual_base):
 		r"""Returns kronecker delta
 		(GUESS) :math:`\boldsymbol{\delta} = \sum_{i,j} e_j^{*}(e_i) e_i^{**} \otimes e_j^{*}`
 		:param dimension: dimension of vector space
 		:return: kronecker delta as a mixed tensor
 		"""
-		return cls.mixed_tensor(vectorspace_base,
+		return cls.mixed_tensor(vector_base, vector_base_to_dual_base,
 		                        (1, 1))(lambda cov, con: cov(con))
 
 	@classmethod
-	def symbolic(cls, symbol, vectorspace_base, rank):
+	def symbolic(cls, symbol, vector_base, order, vector_base_to_dual_base):
 		"""[summary]
 		
 		:param symbol: Example: "A"
 		:param symbol: [str]
-		:param vectorspace_base: e.g. tensor.standard_base_vectorspace(dimension) or sympy.symbols("e_{0:3}")
-		:type vectorspace_base: [type]
-		:param rank: [description]
-		:type rank: [type]
+		:param vector_base: e.g. tensor.standard_base_vectorspace(dimension) or sympy.symbols("e_{0:3}")
+		:type vector_base: [type]
+		:param order: [description]
+		:type order: [type]
 		:return: [description]
 		:rtype: [type]
 		"""
 
-		def latex_vectorspace_base_vector(vectorspace_base, dual_base, v):
+		def latex_vector_base_vector(vector_base, dual_base, v):
 			return ''.join([
 			    "^{",
 			    str(dual_base.index(v) if v in dual_base else " "), "}", "_{",
-			    str(
-			        vectorspace_base.index(v)
-			        if v in vectorspace_base else " "), "}"
+			    str(vector_base.index(v) if v in vector_base else " "), "}"
 			])
 
-		def latex_tensor_base_vector(vectorspace_base, dual_base, V):
+		def latex_tensor_base_vector(vector_base, dual_base, V):
 			return ''.join([
-			    latex_vectorspace_base_vector(vectorspace_base, dual_base, v)
-			    for v in V
+			    latex_vector_base_vector(vector_base, dual_base, v) for v in V
 			])
 
-		def make_symbol(symbol, vectorspace_base, dual_base, V):
+		def make_symbol(symbol, vector_base, dual_base, V):
 			return sympy.Symbol((symbol + "{indices}").format(
-			    indices=latex_tensor_base_vector(vectorspace_base, dual_base,
-			                                     V)))
+			    indices=latex_tensor_base_vector(vector_base, dual_base, V)))
 
-		dual_base = cls.standard_base_dual_vectorspace(vectorspace_base)
-		return cls.mixed_tensor(vectorspace_base, rank, dual_base)(lambda *tensor_base_vector,symbol=symbol,vectorspace_base=vectorspace_base,dual_base=dual_base:
-		make_symbol(symbol, vectorspace_base, dual_base, tensor_base_vector))
+		return cls.mixed_tensor(vector_base, order, vector_base_to_dual_base)(
+		 lambda
+		  *tensor_base_vector,
+		   symbol=symbol,
+		   vector_base=vector_base,
+		   dual_base=vector_base_to_dual_base(vector_base):
+		  make_symbol(symbol, vector_base, dual_base, tensor_base_vector))
 
 	@classmethod
-	def same_coefficient(cls, vectorspace_base, rank, coefficient=0):
-		return cls.mixed_tensor(vectorspace_base,
-		                        rank)(lambda *tensor_base_vector: coefficient)
+	def same_coefficient(cls, coefficient, vector_base, rank,
+	                     vector_base_to_dual_base):
+		return cls.mixed_tensor(
+		    vector_base, rank,
+		    vector_base_to_dual_base)(lambda *indices: coefficient)
 
 	def without_zeros(self, zero_coefficient=0):
 		return type(self)({
