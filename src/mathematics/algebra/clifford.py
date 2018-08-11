@@ -2,6 +2,7 @@ __all__ = ["induced_symmetric_bilinar_form", "clifford_constructor"]
 import itertools
 from mathematics.algebra.tensor import tensor
 from mathematics.number_theory.combinatorics import permutation_to_adjacent_transpositions
+from collections import namedtuple
 
 
 def class_factory(name, baseclasses, **kwargs):
@@ -39,6 +40,14 @@ class clifford(tensor):
 		return hash(tuple(sorted(self.__dict__.items())))
 
 	def quotient(self):
+		"""
+		Quotient
+		NOTE: mutates self and returns self (to allow chains)
+		
+		:return: self
+		:rtype: :py:class:`type(self)`
+		"""
+
 		result = type(self)()
 		for indices_self in self:
 			indices_result = list()
@@ -58,11 +67,15 @@ class clifford(tensor):
 			    tensor._merge_indices(*[indices_result]):
 			    coefficient
 			})
-		return result
+		self.clear()
+		self.update(result)
+		return self
 
 	def swap(self, adjacent_transposition):
 		r"""
 		Swaps the tensor order of the basis in place
+
+		NOTE: mutates self and returns self (to allow chains)
 		:math::
 			v\otimes w = -w\otimes v + (2\cdot \langle v,w\rangle) \cdot 1
 		based on :math:`(u+v)\otimes(u+v) = u\otimes u + u\otimes v + v\otimes u + v\otimes v` being an ideal that is quotiented,
@@ -98,11 +111,16 @@ class clifford(tensor):
 				result = result + prefix @ root @ postfix
 			else:
 				result = result + type(self)({indices_self: self[indices_self]})
-		self = result
+		self.clear()
+		self.update(result)
 		return self
 
 	def braiding_map(self, slot_permutation):
-		r"""Overrides the functionality to incorporate 
+		r"""
+		Overrides the functionality to incorporate 
+		
+		NOTE: mutates self and returns self (to allow chains)
+
 		:math::
 			v\otimes w = -w\otimes v + (2\cdot \langle v,w\rangle) \cdot 1
 		which is valid if the characteristic of the unital associative algebra is not 2.
@@ -114,39 +132,111 @@ class clifford(tensor):
 		adjacent_transpositions = permutation_to_adjacent_transpositions(
 		    slot_permutation)
 		for adjacent_transposition in adjacent_transpositions:
-			self = self.swap(adjacent_transposition)
+			self.swap(adjacent_transposition)
 		return self
 
-	def simplify(self):
-		for indices_of_summand in self:
+	def find_first_indices_and_slots_with_multiple_occurences_of_a_index(self):
+		for indices in self:
 			slots_with_same_index_by_index = {
-			    e: [i for i, ei in enumerate(indices_of_summand) if ei == e]
-			    for e in set(indices_of_summand)
+			    e: [i for i, ei in enumerate(indices) if ei == e]
+			    for e in set(indices)
 			}
 			for index, slots_with_same_index in slots_with_same_index_by_index.items(
 			):
 				if len(slots_with_same_index) > 1:
-					permutation = slots_with_same_index + [
-					    slot for slot in range(0, len(indices_of_summand))
-					    if slot not in slots_with_same_index
-					]
-					return self.braiding_map(
-					    permutation).quotient().without_zeros().simplify()
-			for permutable_indices_of_other_summand in [
-			    indices_of_other_summand for indices_of_other_summand in self
-			    if indices_of_other_summand != indices_of_summand
-			    and set(indices_of_other_summand) == set(indices_of_summand)
-			]:
-				other_summand_to_permute = clifford({
-				    permutable_indices_of_other_summand:
-				    self[permutable_indices_of_other_summand]
-				})
-				slot_permutation = [
-				    indices_of_summand.index(slot)
-				    for slot in permutable_indices_of_other_summand
+					return namedtuple("indices_and_slots",
+					                  ["indices", "slots"])(
+					                      indices=indices,
+					                      slots=slots_with_same_index)
+		return None
+
+	def equal_indices_reduced_yet(self):
+		"""
+		[summary]
+		NOTE: returns False if it mutated self, otherwise True
+		
+		:param indices_of_summand: [description]
+		:type indices_of_summand: [type]
+		"""
+		already_reduced = True
+		while True:
+			indices_and_slots = self.find_first_indices_and_slots_with_multiple_occurences_of_a_index(
+			)
+			if indices_and_slots:
+				permutation = indices_and_slots.slots + [
+				    slot for slot in range(0, len(indices_and_slots.indices))
+				    if slot not in indices_and_slots.slots
 				]
-				self = (self - other_summand_to_permute +
-				        other_summand_to_permute.braiding_map(slot_permutation)
-				        ).quotient().without_zeros().simplify()
-				return self
+				self.braiding_map(permutation).quotient().without_zeros()
+				already_reduced = False
+			else:
+				break
+		return already_reduced
+
+	def normalized_indices_yet(self, indices_normal_form):
+		"""[summary]
+		NOTE: returns False if it mutated self, otherwise True
+		
+		:param indices_normal_form: [description]
+		:type indices_normal_form: [type]
+		:return: [description]
+		:rtype: [type]
+		"""
+
+		def first_indices_not_in_normal_form(search_space, indices_normal_form):
+			for indices_of_other_summand in search_space:
+				if indices_of_other_summand != indices_normal_form and set(
+				    indices_of_other_summand) == set(indices_normal_form):
+					return indices_of_other_summand
+			return None
+
+		already_normalized = True
+		while True:
+			indices_not_in_normal_form = first_indices_not_in_normal_form(
+			    self, indices_normal_form)
+			if indices_not_in_normal_form:
+				slot_permutation = [
+				    indices_normal_form.index(slot)
+				    for slot in indices_not_in_normal_form
+				]
+				other_summand_to_permute = clifford({
+				    indices_not_in_normal_form:
+				    self[indices_not_in_normal_form]
+				})
+				result = (
+				    self - other_summand_to_permute +
+				    other_summand_to_permute.braiding_map(slot_permutation)
+				).quotient().without_zeros()
+				self.clear()
+				self.update(result)
+				already_normalized = False
+			else:
+				return already_normalized
+
+	def simplified_yet(self):
+		"""[summary]
+		NOTE: returns False if it mutated self, otherwise True
+		:return: [description]
+		:rtype: [type]
+		"""
+
+		maybe = self.equal_indices_reduced_yet()
+		if maybe:
+			for indices in self:
+				maybe = maybe and self.normalized_indices_yet(indices)
+				if maybe:
+					continue
+				else:
+					break
+		return maybe
+
+	def simplify(self):
+		"""[summary]
+		NOTE: mutates self if necessary and then returns self (to allow chains)
+		
+		:return: [description]
+		:rtype: [type]
+		"""
+		while not self.simplified_yet():
+			pass
 		return self

@@ -202,10 +202,11 @@ class tensor(dict):
 		return result
 
 	def braiding_map(self, slot_permutation):
-		return type(self)({
+		self = type(self)({
 		    tuple(indices[slot] for slot in slot_permutation): self[indices]
 		    for indices in self
 		})
+		return self
 
 	def trace(self, first_slot, second_slot, pairing=None):
 		r"""Trace/contraction of tensor, over vector space indices as indicated in first_slot and second_slot, 
@@ -334,11 +335,23 @@ class tensor(dict):
 		    vector_base_to_dual_base)(lambda *indices: coefficient)
 
 	def without_zeros(self, zero_coefficient=0):
-		return type(self)({
+		"""[summary]
+		NOTE: mutates self and returns self (to allow chains)
+		
+		:param zero_coefficient: [description], defaults to 0
+		:param zero_coefficient: int, optional
+		:return: [description]
+		:rtype: [type]
+		"""
+
+		result = type(self)({
 		    base_vector: coefficient
 		    for base_vector, coefficient in self.items()
 		    if coefficient != zero_coefficient
 		})
+		self.clear()
+		self.update(result)
+		return result
 
 	def latex(self):
 		return r' + '.join([
