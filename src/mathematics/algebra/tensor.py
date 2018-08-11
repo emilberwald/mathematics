@@ -79,6 +79,7 @@ class tensor(dict):
 			for base_vector in base_tensor:
 				base_tensor_result.append(base_vector)
 		return tuple(base_tensor_result)
+#region algebraic operations
 
 	def __rmul__(self, scalar):
 		r"""scalar product
@@ -178,29 +179,6 @@ class tensor(dict):
 					})
 		return result
 
-	def __call__(self, arg):
-		r"""Tensor product followed by contraction/trace, adjacent pairs in tensor product
-		NOTE: Does not try to match the orders. It assumes the tensor is not mixed-order in such a way so the operation does not work.
-		NOTE: rank is smallest number of pure tensor terms required. degree/ order is the number of vector spaces taken in the tensor products.
-	
-		:param self: 
-		:type self: [tensor]
-		:param arg: 
-		:type arg: [tensor]
-		:return: :math::`\mathsf{self}\otimes \mathsf{arg}`, followed by iterated contraction, 
-			matching slots by adjacent pairs (last of self, first of arg), until either self or arg is fully contracted
-		:rtype: [tensor]
-		"""
-
-		result = self @ arg
-		order_self = max(
-		    [len(tensor_base_vector) for tensor_base_vector in self.keys()])
-		order_arg = max(
-		    [len(tensor_base_vector) for tensor_base_vector in arg.keys()])
-		for r in range(0, min(order_self, order_arg)):
-			result = result.trace(order_self - r - 1, order_self - r)
-		return result
-
 	def braiding_map(self, slot_permutation):
 		"""[summary]
 		NOTE: mutates self and returns self (to allow chains)
@@ -252,6 +230,33 @@ class tensor(dict):
 				})
 				result = result + contracted_summand
 		return result
+
+#endregion
+
+	def __call__(self, arg):
+		r"""Tensor product followed by contraction/trace, adjacent pairs in tensor product
+		NOTE: Does not try to match the orders. It assumes the tensor is not mixed-order in such a way so the operation does not work.
+		NOTE: rank is smallest number of pure tensor terms required. degree/ order is the number of vector spaces taken in the tensor products.
+	
+		:param self: 
+		:type self: [tensor]
+		:param arg: 
+		:type arg: [tensor]
+		:return: :math::`\mathsf{self}\otimes \mathsf{arg}`, followed by iterated contraction, 
+			matching slots by adjacent pairs (last of self, first of arg), until either self or arg is fully contracted
+		:rtype: [tensor]
+		"""
+
+		result = self @ arg
+		order_self = max(
+		    [len(tensor_base_vector) for tensor_base_vector in self.keys()])
+		order_arg = max(
+		    [len(tensor_base_vector) for tensor_base_vector in arg.keys()])
+		for r in range(0, min(order_self, order_arg)):
+			result = result.trace(order_self - r - 1, order_self - r)
+		return result
+
+#region creation classmethods
 
 	@classmethod
 	def multilinear_mapping_tensor_expansion(cls, vector_base_to_dual_base,
@@ -345,6 +350,10 @@ class tensor(dict):
 		    vector_base, rank,
 		    vector_base_to_dual_base)(lambda *indices: coefficient)
 
+#endregion
+
+#region simplification
+
 	def without_zeros(self, zero_coefficient=0):
 		"""[summary]
 		NOTE: mutates self and returns self (to allow chains)
@@ -363,6 +372,9 @@ class tensor(dict):
 		self.clear()
 		self.update(result)
 		return result
+#endregion
+
+#region presentation
 
 	def latex(self):
 		return r' + '.join([
@@ -375,3 +387,6 @@ class tensor(dict):
 
 	def __str__(self):
 		return LatexNodes2Text().latex_to_text(self.latex())
+
+
+#endregion

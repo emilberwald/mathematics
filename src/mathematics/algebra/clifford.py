@@ -135,6 +135,8 @@ class clifford(tensor):
 			self.swap(adjacent_transposition)
 		return self
 
+#region simplification
+
 	def find_first_indices_and_slots_with_multiple_occurences_of_a_index(self):
 		for indices in self:
 			slots_with_same_index_by_index = {
@@ -240,3 +242,6 @@ class clifford(tensor):
 		while not self.simplified_yet():
 			pass
 		return self
+
+
+#endregion
