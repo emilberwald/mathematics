@@ -202,10 +202,21 @@ class tensor(dict):
 		return result
 
 	def braiding_map(self, slot_permutation):
-		self = type(self)({
+		"""[summary]
+		NOTE: mutates self and returns self (to allow chains)
+		
+		:param slot_permutation: [description]
+		:type slot_permutation: [type]
+		:return: [description]
+		:rtype: [type]
+		"""
+
+		result = type(self)({
 		    tuple(indices[slot] for slot in slot_permutation): self[indices]
 		    for indices in self
 		})
+		self.clear()
+		self.update(result)
 		return self
 
 	def trace(self, first_slot, second_slot, pairing=None):
