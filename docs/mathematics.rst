@@ -6,6 +6,7 @@ Subpackages
 
 .. toctree::
 
+    mathematics.algebra
     mathematics.calculus
     mathematics.finite_difference
     mathematics.notation

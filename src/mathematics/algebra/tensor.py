@@ -1,77 +1,22 @@
-__all__ = ["tensor"]
-from autologging import traced
+"""
+Tensor algebra
+"""
+
+__all__ = ["Tensor"]
 import copy
-from mathematics.number_theory.combinatorics import integer_partitions
-import itertools
-import functools
-import operator
-import sympy
+
 from pylatexenc.latex2text import LatexNodes2Text
 
+from .dual import dual
 
-class dual:
-	def __init__(self, vector_base, result_type, i):
-		self.vector_base = vector_base
-		self.result_type = result_type
-		self.i = i
-
-	def __call__(self, vector_base_vector):
-		return self.result_type(
-		    self.vector_base.index(vector_base_vector) == self.i)
-
-	def __eq__(self, other):
-		"""Overrides the default implementation, want to check if semantics are equal"""
-		if type(other) is type(self):
-			return self.__dict__ == other.__dict__
-		return NotImplemented
-
-	def __hash__(self):
-		"""Overrides the default implementation"""
-		return hash(tuple(sorted(self.__dict__.items())))
-
-	def __str__(self):
-		return r"{e_i}^{{*}}".format(e_i=self.vector_base[self.i])
-
-	@staticmethod
-	def default_pairing(cov, con):
-		if (callable(cov)):
-			try:
-				#assuming the first argument is the dual of the second argument...
-				return cov(con)
-			except:
-				pass
-		if (callable(con)):
-			try:
-				#assuming the second argument is the dual of the first argument...
-				return con(cov)
-			except:
-				pass
-		raise TypeError(
-		    "The default pairing did not work, need to provide a user defined pairing."
-		)
-
-	@staticmethod
-	def standard_base_dual_vectorspace(vector_base, result_type=int):
-		return tuple(
-		    dual(vector_base, result_type, i)
-		    for i in range(0, len(vector_base)))
-
-	@staticmethod
-	def standard_base_vectorspace(dimension):
-		return tuple(integer_partitions(dimension, 1))
-
-
-@traced
-class tensor(dict):
+class Tensor(dict):
 	@staticmethod
 	def _merge_indices(*base_tensors):
 		r"""Tensor product for pure tensors without coefficients.
 		
-		:param base_tensors: each argument is a tensor base vector :math::
-			\mathsf{e_A} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_A})-1}
+		:param base_tensors: each argument is a tensor base vector :math:`\mathsf{e_A} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_A})-1}`
 		:type e_A: [tuple]
-		:return: :math::
-			\bigotimes_{\mathsf{e_A}\in \textup{base tensors}}\mathsf{e_A} = \bigotimes_{\mathsf{e_A}\in \textup{base tensors}}(\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k)
+		:return: :math:`\bigotimes_{\mathsf{e_A}\in \textup{base tensors}}\mathsf{e_A} = \bigotimes_{\mathsf{e_A}\in \textup{base tensors}}(\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k)`
 		:rtype: [tuple]
 		"""
 		base_tensor_result = list()
@@ -84,14 +29,20 @@ class tensor(dict):
 	def __rmul__(self, scalar):
 		r"""scalar product
 		(DEFINITION) Compatability of tensor scalar multiplication with vector scalar multiplication
-		:math::
+
+		.. math::
 			c\cdot \mathsf{t} = c\cdot(\mathbf{t_1}\otimes \mathbf{t_2}) = (c \cdot \mathbf{t_1})\otimes \mathbf{t_2} = \mathbf{t_1}\otimes(c \cdot \mathbf{t_2})
+
 		(GUESS) Compatability of tensor scalar multiplication with field multiplication
-		:math::
+
+		.. math::
 			c_1\cdot(c_2\cdot (\mathsf{t_1}\otimes \mathsf{t_2})) = (c_1 \cdot_F c_2)\mathsf{t_1}\otimes \mathsf{t_2}
+
 		(GUESS) Distributivity of scalar multiplication with respect to tensor addition
-		:math::
+
+		.. math::
 			c_1\cdot(\mathsf{t_1}\otimes \mathsf{t_2} + \mathsf{t_3}\otimes \mathsf{t_4}) = c_1\cdot(\mathsf{t_1}\otimes \mathsf{t_2}) + c_1\cdot(\mathsf{t_3}\otimes \mathsf{t_4}) 
+
 		(GUESS) The scalar can be distributed into the coefficient of each pure tensor term.
 		
 		:param self: tensor
@@ -102,36 +53,35 @@ class tensor(dict):
 		"""
 
 		return type(self)({
-		    tensor_product_vector: scalar * self[tensor_product_vector]
-		    for tensor_product_vector in self
+			tensor_product_vector: scalar * self[tensor_product_vector]
+			for tensor_product_vector in self
 		})
 
 	def __add__(self, B):
 		r"""tensor addition
-		
 		(DEFINITION) (not used) If all but one coordinate are the same, addition can be combined.
-		:math::
+
+		.. math::
 			(v_1 + v_2)\otimes w_1 = v_1\otimes w_1 + v_2\otimes w_1
 			v_1\otimes (w_1+w_2) = v_1\otimes w_1 + v_1\otimes w_2
 		(GUESS): Distributivity of scalar multiplication with respect to field addition
-		:math::
-			(c_1 + c_2)(e_i\otimes e_j) = c_1 (e_i \otimes e_j) + c_2 (e_i\otimes e_j)
 
+		.. math::
+			(c_1 + c_2)(e_i\otimes e_j) = c_1 (e_i \otimes e_j) + c_2 (e_i\otimes e_j)
 		We want to distribute the addition as much as possible.
 		The internal state of the tensor is in terms of pure tensors of the vector bases.
 
 		:param self: tensor
 		:type self: [tensor]
-		:param B: the tensor to add
+		:param B: summand
 		:type B: [tensor]
-		:return: 
-		
-		:math::
+		:return:
+		.. math::
 			\mathsf{self}+\mathsf{B} 
-			= (c_1(\mathsf{e_1_i}) \mathsf{e_1_i})+(c_2(\mathsf{e_2_i}) \mathsf{e_2_i})
-			= \left[\sum_{\mathsf{e_1_k} \notin \{\mathsf{e_2_i}\}} c_1(\mathsf{e_1_k}) \mathsf{e_1_k}\right]
-			+ \left[\sum_{\mathsf{e_2_k} \notin \{\mathsf{e_1_i}\}} c_2(\mathsf{e_2_k}) \mathsf{e_2_k}\right]
-			+ \left[\sum_{\mathsf{e_1_k} \in \{\mathsf{e_2_i}\}} (c_1(\mathsf{e_1_k}) + c_2(\mathsf{e_1_k})) \mathsf{e_1_k}\right]
+			= (c_1(\mathsf{{e_1}_i}) \mathsf{{e_1}_i})+(c_2(\mathsf{{e_2}_i}) \mathsf{{e_2}_i})
+			= \left[\sum_{\mathsf{{e_1}_k} \notin \{\mathsf{{e_2}_i}\}} c_1(\mathsf{{e_1}_k}) \mathsf{{e_1}_k}\right]
+			+ \left[\sum_{\mathsf{{e_2}_k} \notin \{\mathsf{{e_1}_i}\}} c_2(\mathsf{{e_2}_k}) \mathsf{{e_2}_k}\right]
+			+ \left[\sum_{\mathsf{{e_1}_k} \in \{\mathsf{{e_2}_i}\}} (c_1(\mathsf{{e_1}_k}) + c_2(\mathsf{{e_1}_k})) \mathsf{{e_1}_k}\right]
 		:rtype: [tensor]
 		"""
 
@@ -145,8 +95,8 @@ class tensor(dict):
 
 	def __neg__(self):
 		return type(self)({
-		    tensor_base_vector: -self[tensor_base_vector]
-		    for tensor_base_vector in self
+			tensor_base_vector: -self[tensor_base_vector]
+			for tensor_base_vector in self
 		})
 
 	def __sub__(self, B):
@@ -160,22 +110,22 @@ class tensor(dict):
 		:type self: [tensor]
 		:param B: tensor
 		:type B: [tensor]
-		:return: :math::
-			\mathsf{self} \otimes \mathsf{B} = (\sum_i c_1^i \mathsf{e_1}_i)\otimes(\sum_i c_2^i \mathsf{e_2}_i) = \sum_i \sum_j (c_1^i\cdot c_2^j)\cdot(\mathsf{e_1}_i \otimes \mathsf{e_2}_j)
+		:return: :math:`\mathsf{self} \otimes \mathsf{B} = (\sum_i c_1^i \mathsf{e_1}_i)\otimes(\sum_i c_2^i \mathsf{e_2}_i) = \sum_i \sum_j (c_1^i\cdot c_2^j)\cdot(\mathsf{e_1}_i \otimes \mathsf{e_2}_j)`
 		:rtype: [tensor]
 		"""
 		result = type(self)()
 		for indices_self, coefficient_self in self.items():
 			for indices_b, coefficient_b in B.items():
-				indices_result = tensor._merge_indices(indices_self, indices_b)
+				indices_result = type(self)._merge_indices(
+					indices_self, indices_b)
 				if indices_result not in result:
 					result[indices_result] = coefficient_self * coefficient_b
 				else:
 					# perhaps this could happen if one of the tensor base vectors are of mixed order?
 					# GUESS: summation best way to handle this?
 					result = result + type(self)({
-					    indices_result:
-					    coefficient_self * coefficient_b
+						indices_result:
+						coefficient_self * coefficient_b
 					})
 		return result
 
@@ -190,8 +140,8 @@ class tensor(dict):
 		"""
 
 		result = type(self)({
-		    tuple(indices[slot] for slot in slot_permutation): self[indices]
-		    for indices in self
+			tuple(indices[slot] for slot in slot_permutation): self[indices]
+			for indices in self
 		})
 		self.clear()
 		self.update(result)
@@ -208,7 +158,7 @@ class tensor(dict):
 		:param second_slot: index of second vector space in pairing 
 		:param pairing: :math:`\langle \mathbf{v_1},\mathbf{v_2} \rangle`
 		:return: Contracted tensor.
-			TODO: Write math.
+		TODO: Write math.
 		:rtype: [tensor]
 		"""
 		pairing = dual.default_pairing if pairing is None else pairing
@@ -216,17 +166,17 @@ class tensor(dict):
 		result = type(self)()
 		for indices_self in self:
 			braided_tensor = type(self)({
-			    indices_self: self[indices_self]
+				indices_self: self[indices_self]
 			}).braiding_map([first_slot] + [second_slot] + [
-			    slot for slot in range(0, len(indices_self))
-			    if slot not in (first_slot, second_slot)
+				slot for slot in range(0, len(indices_self))
+				if slot not in (first_slot, second_slot)
 			])
 			for braided_indices in braided_tensor:
 				coefficient = braided_tensor[braided_indices]
 				pairing_factor = pairing(*braided_indices[0:2])
 				contracted_summand = type(self)({
-				    braided_indices[2:]:
-				    coefficient * pairing_factor
+					braided_indices[2:]:
+					coefficient * pairing_factor
 				})
 				result = result + contracted_summand
 		return result
@@ -242,115 +192,19 @@ class tensor(dict):
 		:type self: [tensor]
 		:param arg: 
 		:type arg: [tensor]
-		:return: :math::`\mathsf{self}\otimes \mathsf{arg}`, followed by iterated contraction, 
+		:return: :math:`\mathsf{self}\otimes \mathsf{arg}`, followed by iterated contraction, 
 			matching slots by adjacent pairs (last of self, first of arg), until either self or arg is fully contracted
 		:rtype: [tensor]
 		"""
 
 		result = self @ arg
 		order_self = max(
-		    [len(tensor_base_vector) for tensor_base_vector in self.keys()])
+			[len(tensor_base_vector) for tensor_base_vector in self.keys()])
 		order_arg = max(
-		    [len(tensor_base_vector) for tensor_base_vector in arg.keys()])
+			[len(tensor_base_vector) for tensor_base_vector in arg.keys()])
 		for r in range(0, min(order_self, order_arg)):
 			result = result.trace(order_self - r - 1, order_self - r)
 		return result
-
-#region creation classmethods
-
-	@classmethod
-	def multilinear_mapping_tensor_expansion(cls, vector_base_to_dual_base,
-	                                         *vector_bases):
-		r"""expands multilinear function as tensor. 
-
-		NOTE: not sure if the math is valid for vector valued multilinear mappings.
-		:param: *vector_bases: Vector space base of each argument of the function.
-		:return: Returns a lambda function which takes the mulilinear function. 
-			:math::
-				f \mapsto \mathsf{F}=
-				f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \cdot \mathbf{e}_{i_1}^{(1)}^{*}\otimes\cdots\otimes\mathbf{e}_{i_k}^{(k)}^{*} 
-				= f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \cdot \mathbf{e}_{(1)}^{i_1}\otimes\cdots\otimes\mathbf{e}_{(k)}^{i_k} 
-		:rtype: [type]
-		"""
-		dual_vector_bases = [
-		    vector_base_to_dual_base(vector_base)
-		    for vector_base in vector_bases
-		]
-		return lambda f, vector_bases=vector_bases, dual_bases=dual_vector_bases: functools.reduce(operator.add,[cls({
-		     tuple(dual_bases[vector_space_index][tensor_index[vector_space_index]] for vector_space_index in range(
-		               0, len(dual_bases))):
-		     f(*[
-		         vector_bases[vector_space_index]
-		         [tensor_index[vector_space_index]]
-		         for vector_space_index in range(0, len(vector_bases))
-		     ])
-		 }) for tensor_index in itertools.product(
-		    *[range(0, len(vector_base)) for vector_base in vector_bases])],cls())
-
-	@classmethod
-	def mixed_tensor(cls, vector_base, order, vector_base_to_dual_base):
-		contravariant_order, covariant_order = order
-		dual_base = vector_base_to_dual_base(vector_base)
-		return cls.multilinear_mapping_tensor_expansion(
-		    vector_base_to_dual_base, *[dual_base] * contravariant_order,
-		    *[vector_base] * covariant_order)
-
-	@classmethod
-	def kronecker_delta(cls, vector_base, vector_base_to_dual_base):
-		r"""Returns kronecker delta
-		(GUESS) :math:`\boldsymbol{\delta} = \sum_{i,j} e_j^{*}(e_i) e_i^{**} \otimes e_j^{*}`
-		:param dimension: dimension of vector space
-		:return: kronecker delta as a mixed tensor
-		"""
-		return cls.mixed_tensor(vector_base, vector_base_to_dual_base,
-		                        (1, 1))(lambda cov, con: cov(con))
-
-	@classmethod
-	def symbolic(cls, symbol, vector_base, order, vector_base_to_dual_base):
-		"""[summary]
-		
-		:param symbol: Example: "A"
-		:param symbol: [str]
-		:param vector_base: e.g. tensor.standard_base_vectorspace(dimension) or sympy.symbols("e_{0:3}")
-		:type vector_base: [type]
-		:param order: [description]
-		:type order: [type]
-		:return: [description]
-		:rtype: [type]
-		"""
-
-		def latex_vector_base_vector(vector_base, dual_base, v):
-			return ''.join([
-			    "^{",
-			    str(dual_base.index(v) if v in dual_base else " "), "}", "_{",
-			    str(vector_base.index(v) if v in vector_base else " "), "}"
-			])
-
-		def latex_tensor_base_vector(vector_base, dual_base, V):
-			return ''.join([
-			    latex_vector_base_vector(vector_base, dual_base, v) for v in V
-			])
-
-		def make_symbol(symbol, vector_base, dual_base, V):
-			return sympy.Symbol((symbol + "{indices}").format(
-			    indices=latex_tensor_base_vector(vector_base, dual_base, V)))
-
-		return cls.mixed_tensor(vector_base, order, vector_base_to_dual_base)(
-		 lambda
-		  *tensor_base_vector,
-		   symbol=symbol,
-		   vector_base=vector_base,
-		   dual_base=vector_base_to_dual_base(vector_base):
-		  make_symbol(symbol, vector_base, dual_base, tensor_base_vector))
-
-	@classmethod
-	def same_coefficient(cls, coefficient, vector_base, rank,
-	                     vector_base_to_dual_base):
-		return cls.mixed_tensor(
-		    vector_base, rank,
-		    vector_base_to_dual_base)(lambda *indices: coefficient)
-
-#endregion
 
 #region simplification
 
@@ -365,9 +219,9 @@ class tensor(dict):
 		"""
 
 		result = type(self)({
-		    base_vector: coefficient
-		    for base_vector, coefficient in self.items()
-		    if coefficient != zero_coefficient
+			base_vector: coefficient
+			for base_vector, coefficient in self.items()
+			if coefficient != zero_coefficient
 		})
 		self.clear()
 		self.update(result)
@@ -378,15 +232,14 @@ class tensor(dict):
 
 	def latex(self):
 		return r' + '.join([
-		    r' \cdot '.join([
-		        r"({0})".format(coefficient),
-		        r' \otimes '.join(["{0}".format(v) for v in base])
-		        if base else r"1"  # scalar 𝟙 
-		    ]) for base, coefficient in self.items()
+			r' \cdot '.join([
+			r"({0})".format(coefficient),
+			r' \otimes '.join(["{0}".format(v) for v in base])
+			if base else r"1"  # scalar 𝟙 
+			]) for base, coefficient in self.items()
 		])
 
 	def __str__(self):
 		return LatexNodes2Text().latex_to_text(self.latex())
-
 
 #endregion
