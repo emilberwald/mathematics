@@ -252,7 +252,7 @@ class LatexWalker:
 				    for root in roots
 				])
 			elif self.traversal == LatexWalker.Traversal.PREFIX:
-				#TODO: this method does not work well when there are nodes connected to several other nodes
+				#TODO: this method does not work well when there are in edges from several nodes
 				return root_join.join([
 				    fix_join.join([
 				        LatexNode(node).as_default()
@@ -261,7 +261,7 @@ class LatexWalker:
 				    ]) for root in roots
 				])
 			elif self.traversal == LatexWalker.Traversal.POSTFIX:
-				#TODO: this method does not work well when there are nodes connected to several other nodes
+				#TODO: this method does not work well when there are in edges from several nodes
 				return root_join.join([
 				    fix_join.join([
 				        LatexNode(node).as_default()

@@ -1,8 +1,6 @@
 __all__ = ["vector"]
-from autologging import traced
 
 
-@traced
 class vector(tuple):
 	@classmethod
 	def __prepare__(mcs, *args, **kwargs):

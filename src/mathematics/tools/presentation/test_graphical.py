@@ -42,17 +42,21 @@ class TestLatexWalker(unittest.TestCase):
 		result_graph = plus(scalprod("r", "a_0"), scalprod("r", "a_1"))
 
 		LatexNode.presentation = presentation
-		result_text = LatexWalker(traversal)(result_graph)
-		if presentation == LatexNode.Presentation.TEXT:
+		if presentation in (LatexNode.Presentation.TEXT,
+		                    LatexNode.Presentation.UNICODE_APPROXIMATION):
+			result_text = LatexWalker(traversal)(result_graph)
 			LatexNode.presentation = LatexNode.Presentation.URL_IMG_PNG
 			result_image = LatexNode("$$" + result_text + "$$").as_default()
 			verdict = user_verdict.get_mediaverdict(
 			    sys._getframe().f_code.co_name, result_image, timeout=60)
-			self.assertTrue(verdict)
 			result_image.unlink()
-		verdict = user_verdict.get_textverdict(
-		    sys._getframe().f_code.co_name, result_text, timeout=60)
-		self.assertTrue(verdict, msg=result_text)
+			self.assertTrue(verdict)
+		else:
+			result_image = LatexWalker(traversal)(result_graph)
+			verdict = user_verdict.get_mediaverdict(
+			    sys._getframe().f_code.co_name, result_image, timeout=60)
+			result_image.unlink()
+			self.assertTrue(verdict, msg=result_text)
 
 
 if __name__ == '__main__':

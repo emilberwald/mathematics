@@ -9,6 +9,7 @@ from pylatexenc.latex2text import LatexNodes2Text
 
 from .dual import dual
 
+
 class Tensor(dict):
 	@staticmethod
 	def _merge_indices(*base_tensors):
@@ -53,8 +54,8 @@ class Tensor(dict):
 		"""
 
 		return type(self)({
-			tensor_product_vector: scalar * self[tensor_product_vector]
-			for tensor_product_vector in self
+		    tensor_product_vector: scalar * self[tensor_product_vector]
+		    for tensor_product_vector in self
 		})
 
 	def __add__(self, B):
@@ -95,8 +96,8 @@ class Tensor(dict):
 
 	def __neg__(self):
 		return type(self)({
-			tensor_base_vector: -self[tensor_base_vector]
-			for tensor_base_vector in self
+		    tensor_base_vector: -self[tensor_base_vector]
+		    for tensor_base_vector in self
 		})
 
 	def __sub__(self, B):
@@ -117,15 +118,15 @@ class Tensor(dict):
 		for indices_self, coefficient_self in self.items():
 			for indices_b, coefficient_b in B.items():
 				indices_result = type(self)._merge_indices(
-					indices_self, indices_b)
+				    indices_self, indices_b)
 				if indices_result not in result:
 					result[indices_result] = coefficient_self * coefficient_b
 				else:
 					# perhaps this could happen if one of the tensor base vectors are of mixed order?
 					# GUESS: summation best way to handle this?
 					result = result + type(self)({
-						indices_result:
-						coefficient_self * coefficient_b
+					    indices_result:
+					    coefficient_self * coefficient_b
 					})
 		return result
 
@@ -140,8 +141,8 @@ class Tensor(dict):
 		"""
 
 		result = type(self)({
-			tuple(indices[slot] for slot in slot_permutation): self[indices]
-			for indices in self
+		    tuple(indices[slot] for slot in slot_permutation): self[indices]
+		    for indices in self
 		})
 		self.clear()
 		self.update(result)
@@ -166,17 +167,17 @@ class Tensor(dict):
 		result = type(self)()
 		for indices_self in self:
 			braided_tensor = type(self)({
-				indices_self: self[indices_self]
+			    indices_self: self[indices_self]
 			}).braiding_map([first_slot] + [second_slot] + [
-				slot for slot in range(0, len(indices_self))
-				if slot not in (first_slot, second_slot)
+			    slot for slot in range(0, len(indices_self))
+			    if slot not in (first_slot, second_slot)
 			])
 			for braided_indices in braided_tensor:
 				coefficient = braided_tensor[braided_indices]
 				pairing_factor = pairing(*braided_indices[0:2])
 				contracted_summand = type(self)({
-					braided_indices[2:]:
-					coefficient * pairing_factor
+				    braided_indices[2:]:
+				    coefficient * pairing_factor
 				})
 				result = result + contracted_summand
 		return result
@@ -199,9 +200,9 @@ class Tensor(dict):
 
 		result = self @ arg
 		order_self = max(
-			[len(tensor_base_vector) for tensor_base_vector in self.keys()])
+		    [len(tensor_base_vector) for tensor_base_vector in self.keys()])
 		order_arg = max(
-			[len(tensor_base_vector) for tensor_base_vector in arg.keys()])
+		    [len(tensor_base_vector) for tensor_base_vector in arg.keys()])
 		for r in range(0, min(order_self, order_arg)):
 			result = result.trace(order_self - r - 1, order_self - r)
 		return result
@@ -219,9 +220,9 @@ class Tensor(dict):
 		"""
 
 		result = type(self)({
-			base_vector: coefficient
-			for base_vector, coefficient in self.items()
-			if coefficient != zero_coefficient
+		    base_vector: coefficient
+		    for base_vector, coefficient in self.items()
+		    if coefficient != zero_coefficient
 		})
 		self.clear()
 		self.update(result)
@@ -232,14 +233,15 @@ class Tensor(dict):
 
 	def latex(self):
 		return r' + '.join([
-			r' \cdot '.join([
-			r"({0})".format(coefficient),
-			r' \otimes '.join(["{0}".format(v) for v in base])
-			if base else r"1"  # scalar 𝟙 
-			]) for base, coefficient in self.items()
+		    r' \cdot '.join([
+		        r"({0})".format(coefficient),
+		        r' \otimes '.join(["{0}".format(v) for v in base])
+		        if base else r"1"  # scalar 𝟙 
+		    ]) for base, coefficient in self.items()
 		])
 
 	def __str__(self):
 		return LatexNodes2Text().latex_to_text(self.latex())
+
 
 #endregion

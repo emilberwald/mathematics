@@ -1,8 +1,6 @@
 from math import gamma
-from autologging import traced
 
 
-@traced
 class multi_index(tuple):
 	@classmethod
 	def __prepare__(mcs, *args, **kwargs):
@@ -69,7 +67,6 @@ class multi_index(tuple):
 		:return: :math:`\binom{\alpha}{\beta} = \binom{\alpha_1}{\beta_1}\binom{\alpha_2}{\beta_2}\cdots\binom{\alpha_n}{\beta_n} = \frac{\alpha!}{\beta!(\alpha-\beta)!}`
 		:rtype: [type]
 		"""
-		print("multi_index.binomial_coefficient({0},{1})".format(self, b))
 		b = multi_index(b)
 		return self.factorial() / (b.factorial() * (self - b).factorial())
 
