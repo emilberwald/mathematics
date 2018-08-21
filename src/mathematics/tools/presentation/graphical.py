@@ -220,8 +220,8 @@ class LatexWalker:
 	def __call__(self,
 	             graph: networkx.MultiDiGraph,
 	             root_join="\quad ",
-	             fix_join="\quad , \quad "):
-		def infix(*successors, root=" ", graph=networkx.MultiDiGraph()):
+	             fix_join="\qquad "):
+		def infix(*successors, root="", graph=networkx.MultiDiGraph()):
 			if successors:
 				if isinstance(root, Operation) and root.codomain:
 					over = LatexNode(root).as_default().join([
@@ -242,6 +242,58 @@ class LatexWalker:
 			else:
 				return LatexNode(root).as_default()
 
+		def prefix(*successors,
+		           root="",
+		           fix_join="",
+		           graph=networkx.MultiDiGraph()):
+			if successors:
+				if isinstance(root, Operation) and root.codomain:
+					over = fix_join.join([LatexNode(root).as_default()] + [
+					    prefix(
+					        *graph.successors(successor),
+					        root=successor,
+					        fix_join=fix_join,
+					        graph=graph) for successor in successors
+					])
+					under = LatexNode(root.codomain).as_default()
+					return underbrace(over, under)
+				else:
+					return fix_join.join([LatexNode(root).as_default()] + [
+					    prefix(
+					        *graph.successors(successor),
+					        root=successor,
+					        fix_join=fix_join,
+					        graph=graph) for successor in successors
+					])
+			else:
+				return LatexNode(root).as_default()
+
+		def postfix(*successors,
+		            root="",
+		            fix_join="",
+		            graph=networkx.MultiDiGraph()):
+			if successors:
+				if isinstance(root, Operation) and root.codomain:
+					over = fix_join.join([
+					    postfix(
+					        *graph.successors(successor),
+					        root=successor,
+					        fix_join=fix_join,
+					        graph=graph) for successor in successors
+					] + [LatexNode(root).as_default()])
+					under = LatexNode(root.codomain).as_default()
+					return underbrace(over, under)
+				else:
+					return fix_join.join([
+					    postfix(
+					        *graph.successors(successor),
+					        root=successor,
+					        fix_join=fix_join,
+					        graph=graph) for successor in successors
+					] + [LatexNode(root).as_default()])
+			else:
+				return LatexNode(root).as_default()
+
 		roots = get_roots(graph)
 		if LatexNode.presentation in (
 		    LatexNode.Presentation.TEXT,
@@ -252,22 +304,20 @@ class LatexWalker:
 				    for root in roots
 				])
 			elif self.traversal == LatexWalker.Traversal.PREFIX:
-				#TODO: this method does not work well when there are in edges from several nodes
 				return root_join.join([
-				    fix_join.join([
-				        LatexNode(node).as_default()
-				        for node in networkx.algorithms.dfs_preorder_nodes(
-				            graph, root)
-				    ]) for root in roots
+				    prefix(
+				        *graph.successors(root),
+				        root=root,
+				        fix_join=fix_join,
+				        graph=graph) for root in roots
 				])
 			elif self.traversal == LatexWalker.Traversal.POSTFIX:
-				#TODO: this method does not work well when there are in edges from several nodes
 				return root_join.join([
-				    fix_join.join([
-				        LatexNode(node).as_default()
-				        for node in networkx.algorithms.dfs_postorder_nodes(
-				            graph, root)
-				    ]) for root in roots
+				    postfix(
+				        *graph.successors(root),
+				        root=root,
+				        fix_join=fix_join,
+				        graph=graph) for root in roots
 				])
 			else:
 				raise NotImplementedError()

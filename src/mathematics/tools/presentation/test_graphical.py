@@ -8,7 +8,7 @@ from ..testing import user_verdict
 #		return QDialog.exec_(self)
 
 
-class TestLatexWalker(unittest.TestCase):
+class TestLatexWalker_Text(unittest.TestCase):
 	@parameterized.expand([(traversal, presentation)
 	                       for traversal in list(LatexWalker.Traversal)
 	                       for presentation in
@@ -28,6 +28,8 @@ class TestLatexWalker(unittest.TestCase):
 		    sys._getframe().f_code.co_name, result, timeout=60)
 		self.assertTrue(verdict, msg=result)
 
+
+class TestLatexWalker_Graphics(unittest.TestCase):
 	@parameterized.expand([(traversal, presentation)
 	                       for traversal in list(LatexWalker.Traversal) for
 	                       presentation in (LatexNode.Presentation.URL_IMG_PNG,
@@ -56,7 +58,7 @@ class TestLatexWalker(unittest.TestCase):
 			verdict = user_verdict.get_mediaverdict(
 			    sys._getframe().f_code.co_name, result_image, timeout=60)
 			result_image.unlink()
-			self.assertTrue(verdict, msg=result_text)
+			self.assertTrue(verdict, msg=result_image)
 
 
 if __name__ == '__main__':
