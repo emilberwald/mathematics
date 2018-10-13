@@ -207,7 +207,9 @@ class Operation:
 		return graph
 
 
-def Quantifier(symbol=None, variable=r"\text{t}", formula=r"\text{f}"):
+def VariableBindingOperator(symbol=None,
+                            variable=r"\text{t}",
+                            formula=r"\text{f}"):
 	def bind_arguments(*bound):
 		#the domain is supposed to be a variable which is one kind of term, but v is so overused so used t instead.
 		domains = [variable] * len(bound[:-1])

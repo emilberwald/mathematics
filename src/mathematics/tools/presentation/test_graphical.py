@@ -40,7 +40,7 @@ class TestLatexWalker_Graphics(unittest.TestCase):
 		R = r"\mathbb{R}"
 		A = r"\mathbb{A}"
 
-		forall = Quantifier(symbol=r"\forall")
+		forall = VariableBindingOperator(symbol=r"\forall")
 		plus = Operation(A, A, codomain=A, symbol="+", algebraic_structure=A)
 		scalprod = Operation(
 		    R, A, codomain=A, symbol=" \cdot ", algebraic_structure=V)
