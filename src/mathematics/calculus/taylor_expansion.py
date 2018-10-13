@@ -8,7 +8,7 @@ from mathematics.number_theory.combinatorics import integer_partitions
 
 def multilinear_mapping(*args, **kwargs):
 	r"""
-	
+
 	:param *args: interpreted as vectors from vector spaces in the order of apperance: math:`\mathbf{x}_0,\ldots,\mathbf{x}_k`
 	:param \**['bases']:
 		Generator for an ordered base for each arg in args,
@@ -23,7 +23,7 @@ def multilinear_mapping(*args, **kwargs):
 		.. highlight:: python
 			([dual_base_vector(arg) for dual_base_vector in dual_base] for arg, dual_base in zip(args, dual_bases))
 		should become a generator for tuples of pairings (dual_base_vector,arg)
-		default: 
+		default:
 			The default assumes that the vectors are indexable:
 			.. highlight:: python
 				#corresponds to cartesian, (e^i,v) = (e^i,v^ke_k) = v^i = arg[i], v = arg in args:

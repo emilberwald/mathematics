@@ -34,14 +34,18 @@ class TestLatexWalker_Graphics(unittest.TestCase):
 	                       for traversal in list(LatexWalker.Traversal) for
 	                       presentation in (LatexNode.Presentation.URL_IMG_PNG,
 	                                        LatexNode.Presentation.TEXT)])
+	#@parameterized.expand([(traversal, presentation) for traversal in (LatexWalker.Traversal.INFIX, ) for presentation in (LatexNode.Presentation.TEXT, )])
 	def test_LatexWalker_image(self, traversal, presentation):
-		V = "V"
-		R = "R"
-		A = "A"
+		V = r"\mathbb{V}"
+		R = r"\mathbb{R}"
+		A = r"\mathbb{A}"
+
+		forall = Quantifier(symbol=r"\forall")
 		plus = Operation(A, A, codomain=A, symbol="+", algebraic_structure=A)
 		scalprod = Operation(
 		    R, A, codomain=A, symbol=" \cdot ", algebraic_structure=V)
-		result_graph = plus(scalprod("r", "a_0"), scalprod("r", "a_1"))
+		result_graph = forall('r', 'a_0', 'a_1',
+		                      plus(scalprod("r", "a_0"), scalprod("r", "a_1")))
 
 		LatexNode.presentation = presentation
 		if presentation in (LatexNode.Presentation.TEXT,

@@ -10,6 +10,7 @@ import pylatexenc.latex2text
 import enum
 import subprocess
 import graphviz
+import itertools
 
 
 def underset(over, under):
@@ -90,8 +91,7 @@ class LatexNode():
 			raise NotImplementedError()
 
 	def as_unicode_approximation(self):
-		return pylatexenc.latex2text.LatexNodes2Text().latex_to_text(
-		    self.latex)
+		return pylatexenc.latex2text.LatexNodes2Text().latex_to_text(self.latex)
 
 	def as_png(self) -> bytes:
 		buffer = io.BytesIO()
@@ -114,11 +114,7 @@ class LatexNode():
 
 	def as_url_png(self, path) -> pathlib.Path:
 		sympy.printing.preview(
-		    self.latex,
-		    output='png',
-		    euler=False,
-		    viewer='file',
-		    filename=path)
+		    self.latex, output='png', euler=False, viewer='file', filename=path)
 		return pathlib.Path(path)
 
 	def as_url_png_tmp(self, cwd=False) -> pathlib.Path:
@@ -171,19 +167,22 @@ class Operation:
 		self.id = id
 
 	def __str__(self):
+		def cartesian_product(*domains):
+			return r" \times ".join([
+			    str(k) + superscript(len(list(g)))
+			    for k, g in itertools.groupby(domains)
+			])
+
 		symbol = str(self.symbol) if self.symbol else r""
 		if self.algebraic_structure:
 			symbol = underset(symbol, str(self.algebraic_structure))
 		if self.domains and self.codomain:
 			symbol = overset(
-			    r"\rightarrow ".join([
-			        r" \times ".join([str(domain) for domain in self.domains]),
-			        str(self.codomain)
-			    ]), symbol)
+			    r"\rightarrow ".join(
+			        [cartesian_product(*self.domains),
+			         str(self.codomain)]), symbol)
 		elif self.domains:
-			symbol = overset(
-			    r" \times ".join([str(domain)
-			                      for domain in self.domains]), symbol)
+			symbol = overset(cartesian_product(*self.domains), symbol)
 		elif self.codomain:
 			symbol = overset(r"\rightarrow " + str(self.codomain), symbol)
 		return symbol
@@ -208,6 +207,23 @@ class Operation:
 		return graph
 
 
+def Quantifier(symbol=None, variable=r"\text{t}", formula=r"\text{f}"):
+	def bind_arguments(*bound):
+		#the domain is supposed to be a variable which is one kind of term, but v is so overused so used t instead.
+		domains = [variable] * len(bound[:-1])
+		if isinstance(bound[-1], networkx.Graph):
+			roots = get_roots(bound[-1])
+			if roots and len(roots) == 1 and isinstance(roots[-1], Operation):
+				domains.append(roots[-1].codomain)
+			else:
+				domains.append(formula)
+		else:
+			domains.append(formula + "?")
+		return Operation(*domains, codomain=formula, symbol=symbol)(*bound)
+
+	return bind_arguments
+
+
 class LatexWalker:
 	class Traversal(enum.Enum):
 		PREFIX = 1,
@@ -224,12 +240,22 @@ class LatexWalker:
 		def infix(*successors, root="", graph=networkx.MultiDiGraph()):
 			if successors:
 				if isinstance(root, Operation) and root.codomain:
-					over = LatexNode(root).as_default().join([
-					    infix(
-					        *graph.successors(successor),
-					        root=successor,
-					        graph=graph) for successor in successors
-					])
+					if root.domains and len(root.domains) != 2:
+						#Special case (infix looks really bad when it does not have arity 2 and the domains look wrong)
+						over = r" \left( " + LatexNode(
+						    root).as_default() + r" \colon\quad " + " , ".join([
+						        infix(
+						            *graph.successors(successor),
+						            root=successor,
+						            graph=graph) for successor in successors
+						    ]) + r" \right) "
+					else:
+						over = LatexNode(root).as_default().join([
+						    infix(
+						        *graph.successors(successor),
+						        root=successor,
+						        graph=graph) for successor in successors
+						])
 					under = LatexNode(root.codomain).as_default()
 					return underbrace(over, under)
 				else:
