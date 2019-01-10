@@ -1,6 +1,13 @@
+import math
 import unittest
 import logging
 from .ode_step import *
+
+
+class TestLobatto(unittest.TestCase):
+	def test_IIIC(self):
+		x2 = Lobatto.assumption_IIIC(2)
+		pass
 
 
 class TestRungeKutta(unittest.TestCase):
@@ -21,7 +28,7 @@ class TestRungeKutta(unittest.TestCase):
 		b = np.array([3 / 2, -3 / 2, 1 / 2, 1 / 2])
 		c = RungeKutta.consistent_c(a)
 
-		Ks = np.random.uniform(-10, 10, 10)
+		Ks = np.hstack((np.random.uniform(-5, 0, 5), np.random.uniform(0, 5, 5)))
 		for K in Ks:
 
 			def F(t, y):
@@ -30,12 +37,20 @@ class TestRungeKutta(unittest.TestCase):
 			t = [0]
 			y = [1]
 			expected_y = [1]
-			delta_t = 0.025
-			for i in range(0, 4):
+			delta_t = 0.001
+			max_t = 2.0
+			for i in range(0, int(max_t / delta_t)):
 				y.append(RungeKutta(F, t[-1], y[-1], a, b, c)(delta_t))
 				t.append(t[-1] + delta_t)
 				expected_y.append(np.exp(K * t[-1]))
-			np.testing.assert_almost_equal(y, expected_y, decimal=3)
+				error_estimate = expected_y[-1] - y[-1]
+				np.testing.assert_almost_equal(
+					y[-1],
+					expected_y[-1],
+					decimal=0,
+					err_msg=
+					f"K={K} e={error_estimate} h={delta_t} log_h(e)={math.log(abs(error_estimate if error_estimate else np.nextafter(error_estimate,error_estimate+1)),delta_t)} [t={t[-1]}, i={i}/{int(max_t/delta_t)}]"
+				)
 
 	def test_explicit_runge_kutta(self):
 		#https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#Use
