@@ -1,3 +1,4 @@
+import operator
 import numpy as np
 import scipy as sp
 import scipy.optimize
@@ -8,40 +9,45 @@ from math import sqrt
 class Lobatto:
 	#Attempts to follow http://homepage.math.uiowa.edu/~ljay/publications.dir/Lobatto.pdf
 	@staticmethod
-	def pack(a,b,c):
-		X = np.hstack((np.ravel(a),np.ravel(b),np.ravel(c)))
+	def pack(a, b, c):
+		X = np.hstack((np.ravel(a), np.ravel(b), np.ravel(c)))
 		return X
+
 	@staticmethod
 	def unpack(X):
-		s = int(sqrt(len(X)+1)-1)
-		a = X[:-2*s].reshape(s,s)
-		b = X[-2*s:-s]
+		s = int(sqrt(len(X) + 1) - 1)
+		a = X[:-2 * s].reshape(s, s)
+		b = X[-2 * s:-s]
 		c = X[-s:]
-		return a,b,c
+		return a, b, c
+
 	@classmethod
-	def assumption_B(cls,p):
+	def assumption_B(cls, p):
 		def null_system_for_assumption(X):
 			a, b, c = cls.unpack(X)
-			result = [k * sum([bj * (cj**(k - 1)) for bj, cj in zip(b, c)]) - 1 for k in range(1, p + 1)]
+			s = len(c)
+			result = [sum([b[j] * (c[j]**(k - 1.0)) for j in range(s)]) - 1.0 / k for k in range(1, p + 1)]
 			return result
 
 		return null_system_for_assumption
 
 	@classmethod
-	def assumption_C(cls,q):
+	def assumption_C(cls, q):
 		def null_system_for_assumption(X):
 			a, b, c = cls.unpack(X)
-			result = [k * sum([aij * (cj**(k - 1)) for aij, cj in zip(ai, c)]) - (ci**k) for ai, ci in zip(a, c) for k in range(1, q + 1)]
+			s = len(c)
+			result = [sum([(c[j]**(k - 1)) * a[i, j] for j in range(s)]) - (c[i]**k) / k for i in range(s) for k in range(1, q + 1)]
 			return result
 
 		return null_system_for_assumption
 
 	@classmethod
-	def assumption_D(cls,r):
+	def assumption_D(cls, r):
 		def null_system_for_assumption(X):
 			a, b, c = cls.unpack(X)
-			result= [
-				k * sum([aij * ci**(k - 1) * bi for aij, bi, ci in zip(ai, b, c)]) + bj*(cj**k - 1) for ai, bj, cj in zip(a, b, c)
+			s = len(c)
+			result = [
+				sum([b[i] * (c[i]**(k - 1.0)) * a[i, j] for i in range(s)]) - (b[j] / k) * (1.0 - (c[j])**k) for j in range(s)
 				for k in range(1, r + 1)
 			]
 			return result
@@ -50,18 +56,79 @@ class Lobatto:
 
 	@classmethod
 	def assumption_IIIC(cls, s):
-		def null_system_for_assumption(X):
-			a, b, c = cls.unpack(X)
-			result= np.hstack(([ai[0] - b[0] for ai in a], [asj - bj for asj, bj in zip(a[-1], b)], cls.assumption_B(2 * len(c) - 2)(X),
-				cls.assumption_C(len(c) - 1)(X), cls.assumption_D(len(c) - 1)(X)))
-			return result
-		a = [[1.0 for i in range(s)] for j in range(s)]
-		b = [1.0 for i in range(s)]
-		c = [1.0 for i in range(s)]
-		#Need to choose a solver that allows for the output to be different than the input
-		sol = sp.optimize.root(null_system_for_assumption, cls.pack(a,b,c), method='lm')
-		result = cls.unpack(sol.x)
+		def create_system(soft=lambda x, cmp, y: cmp(x, y)):
+			def system(X):
+				a, b, c = cls.unpack(X)
+				result = np.hstack((
+					[soft(c[0], operator.eq, 0.0), soft(c[-1], operator.eq, 1.0)],
+					[soft(0, operator.le, ci) for ci in c],
+					[soft(ci, operator.le, 1.0) for ci in c],
+					[soft(c[i], operator.lt, c[i + 1]) for i in range(len(c) - 1)],
+					[soft(ai[0], operator.eq, b[0]) for ai in a],
+					[soft(asj, operator.eq, bj) for asj, bj in zip(a[-1], b)],
+					[soft(x, operator.eq, 0.0) for x in cls.assumption_B(2 * len(c) - 2)(X)],
+					[soft(x, operator.eq, 0.0) for x in cls.assumption_C(len(c) - 1)(X)],
+					[soft(x, operator.eq, 0.0) for x in cls.assumption_D(len(c) - 1)(X)],
+				))
+				return result
+
+			return system
+
+		def try_to_minimize(a, b, c, epsilon=1e-1):
+			soft_min = lambda lhs, cmp, rhs: (not (cmp(lhs, rhs))) * np.linalg.norm(lhs - rhs)
+			system_to_minimize = lambda x: np.linalg.norm(create_system(soft_min)(x))
+			sol = sp.optimize.minimize(system_to_minimize, cls.pack(a, b, c))
+			if (sol.success):
+				cost = system_to_minimize(sol.x)
+				a, b, c = cls.unpack(sol.x)
+				return a, b, c, cost
+			else:
+				if 'x' in sol:
+					cost = system_to_minimize(sol.x)
+					if cost < epsilon:
+						a, b, c = cls.unpack(sol.x)
+						return a, b, c, cost, sol.success
+
+		def try_to_find_kernel(a, b, c):
+			soft_0 = lambda lhs, cmp, rhs: (not (cmp(lhs, rhs))) * np.linalg.norm(lhs - rhs)
+			system_to_find_kernel = lambda x: create_system(soft_0)(x)
+			#Need to choose a solver that allows for the output to be different than the input
+			sol = sp.optimize.root(system_to_find_kernel, cls.pack(a, b, c), method='lm')
+			if (sol.success):
+				residual = system_to_find_kernel(sol.x)
+				a, b, c = cls.unpack(sol.x)
+				return a, b, c, residual, sol.success
+
+		a = [[0.0 for i in range(s)] for j in range(s)]
+		b = [0.0 for i in range(s)]
+		c = [0.0 for i in range(s)]
+		for i in range(2):
+			result_0 = try_to_find_kernel(a, b, c)
+			if (result_0):
+				a, b, c, residual_0, success = result_0
+				c[0] = 0.0
+				c[-1] = 1.0
+				reqs = create_system()(cls.pack(a, b, c))
+				if (all(reqs) or success):
+					break
+
+			result_min = try_to_minimize(a, b, c)
+			if (result_min):
+				a, b, c, residual_min, success = result_min
+				c[0] = 0.0
+				c[-1] = 1.0
+				reqs = create_system()(cls.pack(a, b, c))
+				if (all(reqs) or success):
+					break
+		return a.tolist(), b.tolist(), c.tolist()
+
+	@staticmethod
+	def hardcoded_IIIC(p):
+		result= (butcher_tableu['lobatto_iiic']['butcher_matrix'][p], butcher_tableu['lobatto_iiic']['weights'][p], butcher_tableu[
+			'lobatto_iiic']['abscissae'][p])
 		return result
+
+
 
 
 

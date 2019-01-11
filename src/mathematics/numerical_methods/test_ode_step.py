@@ -2,12 +2,30 @@ import math
 import unittest
 import logging
 from .ode_step import *
+import logging
 
 
 class TestLobatto(unittest.TestCase):
 	def test_IIIC(self):
-		x2 = Lobatto.assumption_IIIC(2)
-		pass
+		try:
+			[
+				np.testing.assert_allclose(actual, desired, atol=1e-4)
+				for actual, desired in zip(Lobatto.assumption_IIIC(2), Lobatto.hardcoded_IIIC(2))
+			]
+			[
+				np.testing.assert_allclose(actual, desired, atol=1e-4)
+				for actual, desired in zip(Lobatto.assumption_IIIC(3), Lobatto.hardcoded_IIIC(3))
+			]
+			[
+				np.testing.assert_allclose(actual, desired, atol=1e-4)
+				for actual, desired in zip(Lobatto.assumption_IIIC(4), Lobatto.hardcoded_IIIC(4))
+			]
+			[
+				np.testing.assert_allclose(actual, desired, atol=1e-4)
+				for actual, desired in zip(Lobatto.assumption_IIIC(5), Lobatto.hardcoded_IIIC(5))
+			]
+		except Exception as e:
+			logging.error(f"{e}")
 
 
 class TestRungeKutta(unittest.TestCase):
@@ -44,10 +62,9 @@ class TestRungeKutta(unittest.TestCase):
 				t.append(t[-1] + delta_t)
 				expected_y.append(np.exp(K * t[-1]))
 				error_estimate = expected_y[-1] - y[-1]
-				np.testing.assert_almost_equal(
+				np.testing.assert_allclose(
 					y[-1],
 					expected_y[-1],
-					decimal=0,
 					err_msg=
 					f"K={K} e={error_estimate} h={delta_t} log_h(e)={math.log(abs(error_estimate if error_estimate else np.nextafter(error_estimate,error_estimate+1)),delta_t)} [t={t[-1]}, i={i}/{int(max_t/delta_t)}]"
 				)
