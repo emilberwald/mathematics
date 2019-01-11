@@ -30,21 +30,7 @@ class TestLobatto(unittest.TestCase):
 
 class TestRungeKutta(unittest.TestCase):
 	def test_implicit_runge_kutta(self):
-		"""
-		Four-stage, 3rd order, L-stable Diagonally Implicit Runge Kutta method
-		  dy/dt = F(t,y) = K*y
-		  t0 = 0
-		  y0 = y(t0) = 1
-		  y(t) = exp(K*t)
-		 """
-		a = np.array([
-			[1 / 2, 0, 0, 0],
-			[1 / 6, 1 / 2, 0, 0],
-			[-1 / 2, 1 / 2, 1 / 2, 0],
-			[3 / 2, -3 / 2, 1 / 2, 1 / 2],
-		])
-		b = np.array([3 / 2, -3 / 2, 1 / 2, 1 / 2])
-		c = RungeKutta.consistent_c(a)
+		a, b, c = Lobatto.assumption_IIIC(4)
 
 		Ks = np.hstack((np.random.uniform(-5, 0, 5), np.random.uniform(0, 5, 5)))
 		for K in Ks:

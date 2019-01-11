@@ -189,7 +189,7 @@ class RungeKutta:
 	@staticmethod
 	def general_k(a, c, F, t0, y0, delta_t):
 		def system_for_k(k):
-			return [F(t0 + c[i] * delta_t, y0 + delta_t * sum([a[i, j] * k[j] for j in range(len(k))])) - k[i] for i in range(len(c))]
+			return [F(t0 + c[i] * delta_t, y0 + delta_t * sum([a[i][j] * k[j] for j in range(len(k))])) - k[i] for i in range(len(c))]
 
 		sol = sp.optimize.root(system_for_k, np.ones_like(c))
 		return sol.x
@@ -198,7 +198,7 @@ class RungeKutta:
 	def explicit_k(a, c, F, t0, y0, delta_t):
 		k = np.zeros_like(c)
 		for i in range(len(c)):
-			k[i] = F(t0 + c[i] * delta_t, y0 + delta_t * sum([a[i, j] * k[j] for j in range(len(k))]))
+			k[i] = F(t0 + c[i] * delta_t, y0 + delta_t * sum([a[i][j] * k[j] for j in range(len(k))]))
 		return k
 
 	@classmethod
@@ -223,7 +223,7 @@ class RungeKutta:
 	def __init__(self, F, t0, y0, a, b, c=None):
 		self.a = a
 		self.b = b
-		self.c = c if c is None else self.consistent_c(a)
+		self.c = self.consistent_c(a) if c is None else c
 		self.F = F
 		self.t0 = t0
 		self.y0 = y0
