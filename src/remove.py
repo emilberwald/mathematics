@@ -3,7 +3,7 @@ import sympy
 from mathematics.algebra.tensor import *
 from mathematics.algebra.clifford import *
 
-#pycallgraph ?
+# pycallgraph ?
 
 # class fileprinter:
 # 	def __init__(self):
@@ -72,40 +72,44 @@ from mathematics.algebra.clifford import *
 
 # import sys
 
+
 def main():
-	try:
-		V = sympy.symbols("e_{0:3}")
-		A = symbolic(tensor, "A", V, (1, 1),
-			dual.standard_base_dual_vectorspace)
-		x = symbolic(tensor, "x", V, (1, 0),
-			dual.standard_base_dual_vectorspace)
+    try:
+        V = sympy.symbols("e_{0:3}")
+        A = symbolic(tensor, "A", V, (1, 1), dual.standard_base_dual_vectorspace)
+        x = symbolic(tensor, "x", V, (1, 0), dual.standard_base_dual_vectorspace)
 
-		print(A.latex())
-		print(x.latex())
-		print(A(x).latex())
+        print(A.latex())
+        print(x.latex())
+        print(A(x).latex())
 
-		V = sympy.symbols("e_{1:3}")
+        V = sympy.symbols("e_{1:3}")
 
-		#clifford.set_symmetric_bilinear_form(lambda x, y: sum([a * b for a, b in zip(x, y)]))
-		clifford_dotprod = clifford_constructor("clifford_dotprod",
-			lambda x, y: float(x == y))
-		a = clifford_dotprod.symbolic("a", V, (1, 0),
-			dual.standard_base_dual_vectorspace)
-		b = clifford_dotprod.symbolic("b", V, (1, 0),
-			dual.standard_base_dual_vectorspace)
-		print(a.latex())
-		print(b.latex())
-		print((a @ b).latex())
-		print((a @ b).simplify().latex())
-		print((a @ x).latex())
-		print((a @ x).simplify().latex())
-		#sys.settrace(tracer)
-		#A + B
-		#print((A + B).latex())
-		#sys.settrace(None)
-	finally:
-		pass
-		#fileprint.flush()
+        # clifford.set_symmetric_bilinear_form(lambda x, y: sum([a * b for a, b in zip(x, y)]))
+        clifford_dotprod = clifford_constructor(
+            "clifford_dotprod", lambda x, y: float(x == y)
+        )
+        a = clifford_dotprod.symbolic(
+            "a", V, (1, 0), dual.standard_base_dual_vectorspace
+        )
+        b = clifford_dotprod.symbolic(
+            "b", V, (1, 0), dual.standard_base_dual_vectorspace
+        )
+        print(a.latex())
+        print(b.latex())
+        print((a @ b).latex())
+        print((a @ b).simplify().latex())
+        print((a @ x).latex())
+        print((a @ x).simplify().latex())
+        # sys.settrace(tracer)
+        # A + B
+        # print((A + B).latex())
+        # sys.settrace(None)
+    finally:
+        pass
+        # fileprint.flush()
 
-if __name__ == '__main__':
-	main()
+
+if __name__ == "__main__":
+    main()
+
