@@ -1,223 +1,118 @@
 import math
 import unittest
+from parameterized import parameterized
 import logging
 from .ode_step import *
 import logging
 import numpy as np
 
 
-class TestLobattoHardcodedCorrespondenceBetweenMethods(unittest.TestCase):
-    def test_IIICstar_correspondence_IIIC_hardcoded(self):
-        for order in range(2, 4):
-            a_first, b_first, c_first = Lobatto.hardcoded_butcher_tableu(
-                order, Lobatto.IIIC
-            )
-            a_second, b_second, c_second = Lobatto.hardcoded_butcher_tableu(
-                order, Lobatto.IIICstar
-            )
-            s = len(c_first)
-            condition = dict()
-            condition["first"] = np.ndarray((s, s))
-            condition["second"] = np.ndarray((s, s))
-            condition["neighbor"] = np.ndarray((s, s))
-            for i in range(s):
-                for j in range(s):
-                    # Don't know which interpretation is correct...
-                    condition["first"][i][j] = (
-                        b_first[i] * a_second[i][j]
-                        + b_first[j] * a_first[j][i]
-                        - b_first[i] * b_first[j]
-                    )
-                    condition["second"][i][j] = (
-                        b_second[i] * a_second[i][j]
-                        + b_second[j] * a_first[j][i]
-                        - b_second[i] * b_second[j]
-                    )
-                    condition["neighbor"][i][j] = (
-                        b_second[i] * a_second[i][j]
-                        + b_first[j] * a_first[j][i]
-                        - b_second[i] * b_first[j]
-                    )
-            np.testing.assert_almost_equal(
-                condition["first"], np.zeros((s, s)), decimal=2
-            )
-            np.testing.assert_almost_equal(
-                condition["second"], np.zeros((s, s)), decimal=2
-            )
-            np.testing.assert_almost_equal(
-                condition["neighbor"], np.zeros((s, s)), decimal=2
-            )
-
-    def test_IIIB_correspondence_IIIA_hardcoded(self):
-        for order in range(2, 4):
-            a_first, b_first, c_first = Lobatto.hardcoded_butcher_tableu(
-                order, Lobatto.IIIA
-            )
-            a_second, b_second, c_second = Lobatto.hardcoded_butcher_tableu(
-                order, Lobatto.IIIB
-            )
-            s = len(c_first)
-            condition = dict()
-            condition["first"] = np.ndarray((s, s))
-            condition["second"] = np.ndarray((s, s))
-            condition["neighbor"] = np.ndarray((s, s))
-            for i in range(s):
-                for j in range(s):
-                    # Don't know which interpretation is correct...
-                    condition["first"][i][j] = (
-                        b_first[i] * a_second[i][j]
-                        + b_first[j] * a_first[j][i]
-                        - b_first[i] * b_first[j]
-                    )
-                    condition["second"][i][j] = (
-                        b_second[i] * a_second[i][j]
-                        + b_second[j] * a_first[j][i]
-                        - b_second[i] * b_second[j]
-                    )
-                    condition["neighbor"][i][j] = (
-                        b_second[i] * a_second[i][j]
-                        + b_first[j] * a_first[j][i]
-                        - b_second[i] * b_first[j]
-                    )
-            np.testing.assert_almost_equal(
-                condition["first"], np.zeros((s, s)), decimal=2
-            )
-            np.testing.assert_almost_equal(
-                condition["second"], np.zeros((s, s)), decimal=2
-            )
-            np.testing.assert_almost_equal(
-                condition["neighbor"], np.zeros((s, s)), decimal=2
-            )
+def custom_name_func(testcase_func, param_num, param):
+    return "_".join(
+        [
+            parameterized.to_safe_name(x)
+            for x in [f"{testcase_func.__name__}", f"{param_num}", f"{param}"]
+        ]
+    )
 
 
-class TestLobattoEstimateCorrespondenceBetweenMethods(unittest.TestCase):
-    def test_IIICstar_correspondence_IIIC(self):
-        for order in range(3, 5):
-            a_first, b_first, c_first = Lobatto.estimate_butcher_tableu(
-                order, Lobatto.IIIC
-            )
-            a_second, b_second, c_second = Lobatto.estimate_butcher_tableu(
-                order, Lobatto.IIICstar
-            )
-            s = len(c_first)
-            condition = dict()
-            condition["first"] = np.ndarray((s, s))
-            condition["second"] = np.ndarray((s, s))
-            condition["neighbor"] = np.ndarray((s, s))
-            for i in range(s):
-                for j in range(s):
-                    # Don't know which interpretation is correct...
-                    condition["first"][i][j] = (
-                        b_first[i] * a_second[i][j]
-                        + b_first[j] * a_first[j][i]
-                        - b_first[i] * b_first[j]
-                    )
-                    condition["second"][i][j] = (
-                        b_second[i] * a_second[i][j]
-                        + b_second[j] * a_first[j][i]
-                        - b_second[i] * b_second[j]
-                    )
-                    condition["neighbor"][i][j] = (
-                        b_second[i] * a_second[i][j]
-                        + b_first[j] * a_first[j][i]
-                        - b_second[i] * b_first[j]
-                    )
-            np.testing.assert_almost_equal(
-                condition["first"], np.zeros((s, s)), decimal=2
-            )
-            np.testing.assert_almost_equal(
-                condition["second"], np.zeros((s, s)), decimal=2
-            )
-            np.testing.assert_almost_equal(
-                condition["neighbor"], np.zeros((s, s)), decimal=2
-            )
+class TestLobattoHardcodedFulfillsConstraints(unittest.TestCase):
+    @parameterized.expand(
+        [
+            *[(order, method) for order in (2, 3, 4) for method in (Lobatto.IIIA,)],
+            *[(order, method) for order in (2, 3, 4) for method in (Lobatto.IIIB,)],
+            *[(order, method) for order in (2, 3, 4, 5) for method in (Lobatto.IIIC,)],
+            *[(order, method) for order in (2, 3) for method in (Lobatto.IIICstar,)],
+        ],
+        testcase_func_name=custom_name_func,
+    )
+    def test_hardcoded_fulfills_requirements(self, order, method):
+        soft_0 = lambda lhs, cmp, rhs: (not (cmp(lhs, rhs))) * np.linalg.norm(lhs - rhs)
+        a, b, c = Lobatto.hardcoded_butcher_tableu(order, method)
+        constraints = Lobatto.create_constraint_system(method, soft=soft_0)
+        actual = constraints(Lobatto.pack(a, b, c))
+        expected = np.zeros_like(actual)
+        np.testing.assert_allclose(actual, expected, atol=1e-15)
 
-    def test_IIIB_correspondence_IIIA(self):
-        for order in range(3, 5):
-            a_first, b_first, c_first = Lobatto.estimate_butcher_tableu(
-                order, Lobatto.IIIA
-            )
-            a_second, b_second, c_second = Lobatto.estimate_butcher_tableu(
-                order, Lobatto.IIIB
-            )
-            s = len(c_first)
-            condition = dict()
-            condition["first"] = np.ndarray((s, s))
-            condition["second"] = np.ndarray((s, s))
-            condition["neighbor"] = np.ndarray((s, s))
-            for i in range(s):
-                for j in range(s):
-                    # Don't know which interpretation is correct...
-                    condition["first"][i][j] = (
-                        b_first[i] * a_second[i][j]
-                        + b_first[j] * a_first[j][i]
-                        - b_first[i] * b_first[j]
-                    )
-                    condition["second"][i][j] = (
-                        b_second[i] * a_second[i][j]
-                        + b_second[j] * a_first[j][i]
-                        - b_second[i] * b_second[j]
-                    )
-                    condition["neighbor"][i][j] = (
-                        b_second[i] * a_second[i][j]
-                        + b_first[j] * a_first[j][i]
-                        - b_second[i] * b_first[j]
-                    )
-            np.testing.assert_almost_equal(
-                condition["first"], np.zeros((s, s)), decimal=2
-            )
-            np.testing.assert_almost_equal(
-                condition["second"], np.zeros((s, s)), decimal=2
-            )
-            np.testing.assert_almost_equal(
-                condition["neighbor"], np.zeros((s, s)), decimal=2
-            )
+
+class TestLobattoCorrespondenceBetweenMethods(unittest.TestCase):
+    @parameterized.expand(
+        [
+            *[
+                (order, variant, Lobatto.IIIC, Lobatto.IIICstar)
+                for order in (2, 3)
+                for variant in (Lobatto.hardcoded_butcher_tableu,)
+            ],
+            *[
+                (order, variant, Lobatto.IIIC, Lobatto.IIICstar)
+                for order in (2, 3, 4)
+                for variant in (Lobatto.estimate_butcher_tableu,)
+            ],
+            *[
+                (order, variant, Lobatto.IIIA, Lobatto.IIIB)
+                for order in (2, 3, 4)
+                for variant in (
+                    Lobatto.estimate_butcher_tableu,
+                    Lobatto.hardcoded_butcher_tableu,
+                )
+            ],
+        ],
+        testcase_func_name=custom_name_func,
+    )
+    def test_correspondence_between_methods(
+        self, order, variant, first_method, second_method
+    ):
+        a_first, b_first, c_first = variant(order, first_method)
+        a_second, b_second, c_second = variant(order, second_method)
+        s = len(c_first)
+        condition = dict()
+        condition["first"] = np.ndarray((s, s))
+        condition["second"] = np.ndarray((s, s))
+        condition["neighbor"] = np.ndarray((s, s))
+        for i in range(s):
+            for j in range(s):
+                # Don't know which interpretation is correct...
+                condition["first"][i][j] = (
+                    b_first[i] * a_second[i][j]
+                    + b_first[j] * a_first[j][i]
+                    - b_first[i] * b_first[j]
+                )
+                condition["second"][i][j] = (
+                    b_second[i] * a_second[i][j]
+                    + b_second[j] * a_first[j][i]
+                    - b_second[i] * b_second[j]
+                )
+                condition["neighbor"][i][j] = (
+                    b_second[i] * a_second[i][j]
+                    + b_first[j] * a_first[j][i]
+                    - b_second[i] * b_first[j]
+                )
+        np.testing.assert_almost_equal(condition["first"], np.zeros((s, s)), decimal=2)
+        np.testing.assert_almost_equal(condition["second"], np.zeros((s, s)), decimal=2)
+        np.testing.assert_almost_equal(
+            condition["neighbor"], np.zeros((s, s)), decimal=2
+        )
 
 
 class TestLobattoEstimateApproximatesHardcoded(unittest.TestCase):
-    def test_IIIA(self):
-        version = Lobatto.IIIA
-        for order in [2, 3, 4]:
-            [
-                np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
-                for actual, desired in zip(
-                    Lobatto.estimate_butcher_tableu(order, version),
-                    Lobatto.hardcoded_butcher_tableu(order, version),
-                )
-            ]
-
-    def test_IIIB(self):
-        version = Lobatto.IIIB
-        for order in [2, 3, 4]:
-            [
-                np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
-                for actual, desired in zip(
-                    Lobatto.estimate_butcher_tableu(order, version),
-                    Lobatto.hardcoded_butcher_tableu(order, version),
-                )
-            ]
-
-    def test_IIIC(self):
-        version = Lobatto.IIIC
-        for order in [2, 3, 4, 5]:
-            [
-                np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
-                for actual, desired in zip(
-                    Lobatto.estimate_butcher_tableu(order, version),
-                    Lobatto.hardcoded_butcher_tableu(order, version),
-                )
-            ]
-
-    def test_IIICstar(self):
-        version = Lobatto.IIICstar
-        for order in [2, 3]:
-            [
-                np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
-                for actual, desired in zip(
-                    Lobatto.estimate_butcher_tableu(order, version),
-                    Lobatto.hardcoded_butcher_tableu(order, version),
-                )
-            ]
+    @parameterized.expand(
+        [
+            #            *[(order, method) for order in (2, 3, 4) for method in (Lobatto.IIIA,)],
+            #            *[(order, method) for order in (2, 3, 4) for method in (Lobatto.IIIB,)],
+            #            *[(order, method) for order in (2, 3, 4, 5) for method in (Lobatto.IIIC,)],
+            #            *[(order, method) for order in (2, 3) for method in (Lobatto.IIICstar,)],
+            *[(order, method) for order in (5,) for method in (Lobatto.IIIC,)]
+        ],
+        testcase_func_name=custom_name_func,
+    )
+    def test_estimate_approximates_hardcoded(self, order, method):
+        [
+            np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
+            for actual, desired in zip(
+                Lobatto.estimate_butcher_tableu(order, method),
+                Lobatto.hardcoded_butcher_tableu(order, method),
+            )
+        ]
 
 
 class TestRungeKutta(unittest.TestCase):
