@@ -3,7 +3,8 @@ import numpy as np
 import scipy as sp
 import scipy.optimize
 import collections
-from math import sqrt
+import math
+from .butcher_tableu import butcher_tableu
 
 
 class Lobatto:
@@ -15,7 +16,7 @@ class Lobatto:
 
 	@staticmethod
 	def unpack(X):
-		s = int(sqrt(len(X) + 1) - 1)
+		s = int(math.sqrt(len(X) + 1) - 1)
 		a = X[:-2 * s].reshape(s, s)
 		b = X[-2 * s:-s]
 		c = X[-s:]
@@ -55,20 +56,73 @@ class Lobatto:
 		return null_system_for_assumption
 
 	@classmethod
-	def assumption_IIIC(cls, s):
+	def shared_constraints(cls, soft, X):
+		a, b, c = cls.unpack(X)
+		s = len(c)
+		return [
+			[soft(x, operator.eq, 0.0) for x in cls.assumption_B(2 * len(c) - 2)(X)],
+			[soft(c[0], operator.eq, 0.0), soft(c[-1], operator.eq, 1.0)],
+			[soft(0, operator.le, ci) for ci in c],
+			[soft(ci, operator.le, 1.0) for ci in c],
+			[soft(c[i], operator.lt, c[i + 1]) for i in range(s - 1)],
+			[soft(c[-j], operator.eq, 1 - c[j]) for j in range(s)],
+			[soft(b[-j], operator.eq, b[j]) for j in range(s)],
+		]
+
+	@classmethod
+	def IIIA(cls, soft, X):
+		a, b, c = cls.unpack(X)
+		s = len(c)
+		return [
+			[soft(constraint, operator.eq, 0.0) for constraint in cls.assumption_C(s)(X)],
+			[soft(constraint, operator.eq, 0.0) for constraint in cls.assumption_D(s - 2)(X)],
+			[soft(a1j, operator.eq, 0.0) for a1j in a[0]],
+			[soft(asj, operator.eq, bj) for asj, bj in zip(a[-1], b)],
+		]
+
+	@classmethod
+	def IIIB(cls, soft, X):
+		a, b, c = cls.unpack(X)
+		s = len(c)
+		return [
+			[soft(constraint, operator.eq, 0.0) for constraint in cls.assumption_C(s - 2)(X)],
+			[soft(constraint, operator.eq, 0.0) for constraint in cls.assumption_D(s)(X)],
+			[soft(ai[0], operator.eq, b[0]) for ai in a],
+			[soft(ai[-1], operator.eq, 0.0) for ai in a],
+		]
+
+	@classmethod
+	def IIIC(cls, soft, X):
+		a, b, c = cls.unpack(X)
+		s = len(c)
+		return [
+			[soft(constraint, operator.eq, 0.0) for constraint in cls.assumption_C(s - 1)(X)],
+			[soft(constraint, operator.eq, 0.0) for constraint in cls.assumption_D(s - 1)(X)],
+			[soft(ai[0], operator.eq, b[0]) for ai in a],
+			[soft(asj, operator.eq, bj) for asj, bj in zip(a[-1], b)],
+		]
+
+	@classmethod
+	def IIICstar(cls, soft, X):
+		a, b, c = cls.unpack(X)
+		s = len(c)
+		return [
+			[soft(constraint, operator.eq, 0.0) for constraint in cls.assumption_C(s - 1)(X)],
+			[soft(constraint, operator.eq, 0.0) for constraint in cls.assumption_D(s - 1)(X)],
+			[soft(ai[-1], operator.eq, 0.0) for ai in a],
+			[soft(a1j, operator.eq, 0.0) for a1j in a[0]],
+		]
+
+	@classmethod
+	def estimate_butcher_tableu(cls, s, specific_constraints=None):
+		specific_constraints = cls.IIIC if specific_constraints is None else specific_constraints
+
 		def create_system(soft=lambda x, cmp, y: cmp(x, y)):
 			def system(X):
 				a, b, c = cls.unpack(X)
 				result = np.hstack((
-					[soft(c[0], operator.eq, 0.0), soft(c[-1], operator.eq, 1.0)],
-					[soft(0, operator.le, ci) for ci in c],
-					[soft(ci, operator.le, 1.0) for ci in c],
-					[soft(c[i], operator.lt, c[i + 1]) for i in range(len(c) - 1)],
-					[soft(ai[0], operator.eq, b[0]) for ai in a],
-					[soft(asj, operator.eq, bj) for asj, bj in zip(a[-1], b)],
-					[soft(x, operator.eq, 0.0) for x in cls.assumption_B(2 * len(c) - 2)(X)],
-					[soft(x, operator.eq, 0.0) for x in cls.assumption_C(len(c) - 1)(X)],
-					[soft(x, operator.eq, 0.0) for x in cls.assumption_D(len(c) - 1)(X)],
+					*cls.shared_constraints(soft, X),
+					*specific_constraints(soft, X),
 				))
 				return result
 
@@ -110,7 +164,7 @@ class Lobatto:
 				c[-1] = 1.0
 				reqs = create_system()(cls.pack(a, b, c))
 				if (all(reqs) or success):
-					break
+					return a.tolist(), b.tolist(), c.tolist()
 
 			result_min = try_to_minimize(a, b, c)
 			if (result_min):
@@ -119,59 +173,29 @@ class Lobatto:
 				c[-1] = 1.0
 				reqs = create_system()(cls.pack(a, b, c))
 				if (all(reqs) or success):
-					break
-		return a.tolist(), b.tolist(), c.tolist()
+					return a.tolist(), b.tolist(), c.tolist()
 
-	@staticmethod
-	def hardcoded_IIIC(p):
-		result= (butcher_tableu['lobatto_iiic']['butcher_matrix'][p], butcher_tableu['lobatto_iiic']['weights'][p], butcher_tableu[
-			'lobatto_iiic']['abscissae'][p])
-		return result
+	@classmethod
+	def hardcoded_butcher_tableu(cls, p, identifier):
+		if identifier == cls.IIIA:
+			name = 'lobatto_iiia'
+		elif identifier == cls.IIIB:
+			name = 'lobatto_iiib'
+		elif identifier == cls.IIIC:
+			name = 'lobatto_iiic'
+		elif identifier == cls.IIICstar:
+			name = 'lobatto_iiic*'
+		else:
+			name = identifier
+		try:
+			return (butcher_tableu[name]['butcher_matrix'][p], butcher_tableu[name]['weights'][p], butcher_tableu[name]['abscissae'][p])
+		except KeyError:
+			return None
 
-
-
-
-
-butcher_tableu = {
-	'lobatto_iiic': {
-	'butcher_matrix': {
-	2: [
-	[1 / 2, -1 / 2],
-	[1 / 2, 1 / 2],
-	],
-	3: [
-	[1 / 6, -1 / 3, 1 / 6],
-	[1 / 6, 5 / 12, -1 / 12],
-	[1 / 6, 2 / 3, 1 / 6],
-	],
-	4: [
-	[1 / 12, -sqrt(5) / 12, sqrt(5) / 12, -1 / 12],
-	[1 / 12, 1 / 4, (10 - 7 * sqrt(5)) / 60, sqrt(5) / 60],
-	[1 / 12, (10 + 7 * sqrt(5)) / 60, 1 / 4, -sqrt(5) / 60],
-	[1 / 12, 5 / 12, 5 / 12, 1 / 12],
-	],
-	5: [
-	[1 / 20, -7 / 60, 2 / 15, -7 / 60, 1 / 20],
-	[1 / 20, 29 / 180, (47 - 15 * sqrt(21)) / 315, (203 - 30 * sqrt(21)) / 1260, -3 / 140],
-	[1 / 20, (329 + 105 * sqrt(21)) / 2880, 73 / 360, (329 - 105 * sqrt(21)) / 2880, 3 / 160],
-	[1 / 20, (203 + 30 * sqrt(21)) / 1260, (47 + 15 * sqrt(21)) / 315, 29 / 180, -3 / 140],
-	[1 / 20, 49 / 180, 16 / 45, 49 / 180, 1 / 20],
-	],
-	},
-	'weights': {
-	2: [1 / 2, 1 / 2],
-	3: [1 / 6, 2 / 3, 1 / 6],
-	4: [1 / 12, 5 / 12, 5 / 12, 1 / 12],
-	5: [1 / 20, 49 / 180, 16 / 45, 49 / 180, 1 / 20],
-	},
-	'abscissae': {  #node coefficients that multiply h, f(x+c*h)
-	2: [0, 1],
-	3: [0, 1 / 2, 1],
-	4: [0, 1/2-sqrt(5)/10, 1/2+sqrt(5)/10,1],
-	5: [0, 1/2-sqrt(21)/14, 1/2, 1/2+sqrt(21)/14, 1],
-	}
-	},
-}
+	@classmethod
+	def butcher_tableu(cls, p, identifier):
+		result = cls.hardcoded_butcher_tableu(p, identifier)
+		return result if result else cls.estimate_butcher_tableu(p, identifier)
 
 
 class RungeKutta:
