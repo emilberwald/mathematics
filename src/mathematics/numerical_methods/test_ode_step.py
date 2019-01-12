@@ -97,11 +97,10 @@ class TestLobattoCorrespondenceBetweenMethods(unittest.TestCase):
 class TestLobattoEstimateApproximatesHardcoded(unittest.TestCase):
     @parameterized.expand(
         [
-            #            *[(order, method) for order in (2, 3, 4) for method in (Lobatto.IIIA,)],
-            #            *[(order, method) for order in (2, 3, 4) for method in (Lobatto.IIIB,)],
-            #            *[(order, method) for order in (2, 3, 4, 5) for method in (Lobatto.IIIC,)],
-            #            *[(order, method) for order in (2, 3) for method in (Lobatto.IIICstar,)],
-            *[(order, method) for order in (5,) for method in (Lobatto.IIIC,)]
+            *[(order, method) for order in (2, 3, 4) for method in (Lobatto.IIIA,)],
+            *[(order, method) for order in (2, 3, 4) for method in (Lobatto.IIIB,)],
+            *[(order, method) for order in (2, 3, 4, 5) for method in (Lobatto.IIIC,)],
+            *[(order, method) for order in (2, 3) for method in (Lobatto.IIICstar,)],
         ],
         testcase_func_name=custom_name_func,
     )
