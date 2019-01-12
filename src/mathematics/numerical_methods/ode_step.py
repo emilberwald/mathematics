@@ -199,26 +199,17 @@ class Lobatto:
         else:
             a, b, c = initial_guess
 
-        def _create_constraint_system(soft=lambda x, cmp, y: cmp(x, y)):
-            def system(X):
-                result = np.hstack(
-                    (*cls.shared_constraints(soft, X), *specific_constraints(soft, X))
-                )
-                return result
-
-            return system
-
         soft_min = lambda lhs, cmp, rhs: (not (cmp(lhs, rhs))) * np.linalg.norm(
             lhs - rhs
         )
-        constraints_min = _create_constraint_system(soft_min)
+        constraints_min = cls.create_constraint_system(specific_constraints, soft_min)
         system_to_minimize = lambda x: np.linalg.norm(constraints_min(x))
 
         soft_0 = lambda lhs, cmp, rhs: (not (cmp(lhs, rhs))) * np.linalg.norm(lhs - rhs)
-        constraints_0 = _create_constraint_system(soft_0)
+        constraints_0 = cls.create_constraint_system(specific_constraints, soft_0)
         system_to_find_kernel = lambda x: constraints_0(x)
 
-        constraints_req = _create_constraint_system()
+        constraints_req = cls.create_constraint_system(specific_constraints)
         system_requirements = lambda x: constraints_req(x)
 
         def try_to_minimize(a, b, c, epsilon=1e-1):
