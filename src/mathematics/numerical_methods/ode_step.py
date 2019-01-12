@@ -8,7 +8,9 @@ from .butcher_tableu import butcher_tableu
 
 
 class Lobatto:
-	#Attempts to follow http://homepage.math.uiowa.edu/~ljay/publications.dir/Lobatto.pdf
+	#Attempts to follow
+	#L.O. Jay: Lobatto methods. [online, .pdf]. Encyclopedia of Applied and Computational Mathematics [.pdf], Numerical Analysis of Ordinary Differential Equations, Springer - The Language of Science, Bj\"orn Engquist (Ed.), 2015.
+	#http://homepage.math.uiowa.edu/~ljay/publications.html
 	@staticmethod
 	def pack(a, b, c):
 		X = np.hstack((np.ravel(a), np.ravel(b), np.ravel(c)))
