@@ -176,64 +176,48 @@ class TestLobattoEstimateCorrespondenceBetweenMethods(unittest.TestCase):
 
 class TestLobattoEstimateApproximatesHardcoded(unittest.TestCase):
     def test_IIIA(self):
-        try:
-            version = Lobatto.IIIA
-            for order in range(2, 4):
-                [
-                    np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
-                    for actual, desired in zip(
-                        Lobatto.estimate_butcher_tableu(order, version),
-                        Lobatto.hardcoded_butcher_tableu(order, version),
-                    )
-                ]
-        except Exception as e:
-            logging.error(f"{e}")
-            raise
+        version = Lobatto.IIIA
+        for order in [2, 3, 4]:
+            [
+                np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
+                for actual, desired in zip(
+                    Lobatto.estimate_butcher_tableu(order, version),
+                    Lobatto.hardcoded_butcher_tableu(order, version),
+                )
+            ]
 
     def test_IIIB(self):
-        try:
-            version = Lobatto.IIIB
-            for order in range(2, 4):
-                [
-                    np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
-                    for actual, desired in zip(
-                        Lobatto.estimate_butcher_tableu(order, version),
-                        Lobatto.hardcoded_butcher_tableu(order, version),
-                    )
-                ]
-        except Exception as e:
-            logging.error(f"{e}")
-            raise
+        version = Lobatto.IIIB
+        for order in [2, 3, 4]:
+            [
+                np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
+                for actual, desired in zip(
+                    Lobatto.estimate_butcher_tableu(order, version),
+                    Lobatto.hardcoded_butcher_tableu(order, version),
+                )
+            ]
 
     def test_IIIC(self):
-        try:
-            version = Lobatto.IIIC
-            for order in range(2, 6):
-                [
-                    np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
-                    for actual, desired in zip(
-                        Lobatto.estimate_butcher_tableu(order, version),
-                        Lobatto.hardcoded_butcher_tableu(order, version),
-                    )
-                ]
-        except Exception as e:
-            logging.error(f"{e}")
-            raise
+        version = Lobatto.IIIC
+        for order in [2, 3, 4, 5]:
+            [
+                np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
+                for actual, desired in zip(
+                    Lobatto.estimate_butcher_tableu(order, version),
+                    Lobatto.hardcoded_butcher_tableu(order, version),
+                )
+            ]
 
     def test_IIICstar(self):
-        try:
-            version = Lobatto.IIICstar
-            for order in range(2, 4):
-                [
-                    np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
-                    for actual, desired in zip(
-                        Lobatto.estimate_butcher_tableu(order, version),
-                        Lobatto.hardcoded_butcher_tableu(order, version),
-                    )
-                ]
-        except Exception as e:
-            logging.error(f"{e}")
-            raise
+        version = Lobatto.IIICstar
+        for order in [2, 3]:
+            [
+                np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
+                for actual, desired in zip(
+                    Lobatto.estimate_butcher_tableu(order, version),
+                    Lobatto.hardcoded_butcher_tableu(order, version),
+                )
+            ]
 
 
 class TestRungeKutta(unittest.TestCase):

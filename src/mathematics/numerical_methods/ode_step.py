@@ -70,7 +70,7 @@ class Lobatto:
     def shared_constraints(cls, soft, X):
         a, b, c = cls.unpack(X)
         s = len(c)
-        return [
+        result = [
             [
                 soft(constraint, operator.eq, 0.0)
                 for constraint in cls.assumption_B(2 * s - 2)(X)
@@ -79,16 +79,22 @@ class Lobatto:
             [soft(0, operator.le, ci) for ci in c],
             [soft(ci, operator.le, 1.0) for ci in c],
             [soft(c[i], operator.lt, c[i + 1]) for i in range(s - 1)],
-            # unit tests failed with these -- perhaps they were implemented wrong?
+            [
+                soft(b[0], operator.eq, 1 / (s * (s - 1))),
+                soft(b[-1], operator.eq, 1 / (s * (s - 1))),
+            ],
+            [soft(bj, operator.gt, 0.0) for bj in b],
+            # unit tests failed with these -- perhaps they were implemented wrong? or overdetermined system makes the solution wonky?
             # [soft(c[-j], operator.eq, 1.0 - c[j]) for j in range(s)],
             # [soft(b[-j], operator.eq, b[j]) for j in range(s)],
         ]
+        return result
 
     @classmethod
     def IIIA(cls, soft, X):
         a, b, c = cls.unpack(X)
         s = len(c)
-        return [
+        result = [
             [
                 soft(constraint, operator.eq, 0.0)
                 for constraint in cls.assumption_C(s)(X)
@@ -100,12 +106,13 @@ class Lobatto:
             [soft(a1j, operator.eq, 0.0) for a1j in a[0]],
             [soft(asj, operator.eq, bj) for asj, bj in zip(a[-1], b)],
         ]
+        return result
 
     @classmethod
     def IIIB(cls, soft, X):
         a, b, c = cls.unpack(X)
         s = len(c)
-        return [
+        result = [
             [
                 soft(constraint, operator.eq, 0.0)
                 for constraint in cls.assumption_C(s - 2)(X)
@@ -117,12 +124,13 @@ class Lobatto:
             [soft(ai[0], operator.eq, b[0]) for ai in a],
             [soft(ai[-1], operator.eq, 0.0) for ai in a],
         ]
+        return result
 
     @classmethod
     def IIIC(cls, soft, X):
         a, b, c = cls.unpack(X)
         s = len(c)
-        return [
+        result = [
             [
                 soft(constraint, operator.eq, 0.0)
                 for constraint in cls.assumption_C(s - 1)(X)
@@ -134,12 +142,13 @@ class Lobatto:
             [soft(ai[0], operator.eq, b[0]) for ai in a],
             [soft(asj, operator.eq, bj) for asj, bj in zip(a[-1], b)],
         ]
+        return result
 
     @classmethod
     def IIICstar(cls, soft, X):
         a, b, c = cls.unpack(X)
         s = len(c)
-        return [
+        result = [
             [
                 soft(constraint, operator.eq, 0.0)
                 for constraint in cls.assumption_C(s - 1)(X)
@@ -151,6 +160,7 @@ class Lobatto:
             [soft(ai[-1], operator.eq, 0.0) for ai in a],
             [soft(a1j, operator.eq, 0.0) for a1j in a[0]],
         ]
+        return result
 
     @classmethod
     def estimate_butcher_tableu(cls, s, specific_constraints=None):
@@ -202,14 +212,22 @@ class Lobatto:
         a = [[0.0 for i in range(s)] for j in range(s)]
         b = [0.0 for i in range(s)]
         c = [0.0 for i in range(s)]
-        for i in range(2):
+        if specific_constraints == cls.IIIA:
+            # To mitigate that the test cases for IIIA failed
+            continue_condition = lambda reqs, iterationNo, success: all(reqs) or (
+                success and iterationNo > 0
+            )
+        else:
+            continue_condition = lambda reqs, iterationNo, success: all(reqs) or success
+
+        for i in range(100):
             result_0 = try_to_find_kernel(a, b, c)
             if result_0:
                 a, b, c, residual_0, success = result_0
                 c[0] = 0.0
                 c[-1] = 1.0
                 reqs = create_system()(cls.pack(a, b, c))
-                if all(reqs) or success:
+                if continue_condition(reqs, i, success):
                     return a.tolist(), b.tolist(), c.tolist()
 
             result_min = try_to_minimize(a, b, c)
@@ -218,7 +236,7 @@ class Lobatto:
                 c[0] = 0.0
                 c[-1] = 1.0
                 reqs = create_system()(cls.pack(a, b, c))
-                if all(reqs) or success:
+                if continue_condition(reqs, i, success):
                     return a.tolist(), b.tolist(), c.tolist()
 
     @classmethod
