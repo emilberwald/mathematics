@@ -2,11 +2,7 @@ import unittest
 import functools
 from parameterized import parameterized
 import numpy as np
-
-if __name__ == "__main__":
-    from differential import *
-else:
-    from .differential import *
+from .differential import *
 
 
 def custom_name_func(testcase_func, param_num, param):
@@ -22,16 +18,24 @@ def product(*args):
     return functools.reduce(lambda x0, x1: x0 * x1, args)
 
 
-class TestDifferential(unittest.TestCase):
+class TestFlow(unittest.TestCase):
     def test_flow(self):
-        np.allclose([0.1], flow()(np.array(1))(0.1)(lambda t: t)(0))
-        np.allclose([-0.1], flow()(np.array(-1))(0.1)(lambda t: t)(0))
+        np.testing.assert_allclose([0.1], flow()(np.array(1))(0.1)(lambda t: t)(0))
+        np.testing.assert_allclose([-0.1], flow()(np.array(-1))(0.1)(lambda t: t)(0))
 
+
+class TestFiniteForwardDifference(unittest.TestCase):
     def test_finite_forward_difference(self):
         C, x = np.random.rand(2)
-        np.allclose([2], finite_forward_difference()(1)(lambda x: C * x)(x)(0.1))
-        np.allclose([-2], finite_forward_difference()(1)(lambda x: -C * x)(x)(0.1))
+        actual = finite_forward_difference()(1)(lambda x: C * x)(x)(0.1)
+        expected = C
+        np.testing.assert_allclose(actual, expected)
+        actual = finite_forward_difference()(1)(lambda x: -C * x)(x)(0.1)
+        expected = -C
+        np.testing.assert_allclose(actual, expected)
 
+
+class TestDifferentialWithScalarFunction(unittest.TestCase):
     @parameterized.expand(
         [
             (np.sin, np.cos),
@@ -45,8 +49,10 @@ class TestDifferential(unittest.TestCase):
         x = np.random.rand(1)
         actual_derivative = directional_derivative(1)(function)(x)
         expected_derivative = known_derivative(x)
-        np.allclose(actual_derivative, expected_derivative)
+        np.testing.assert_allclose(actual_derivative, expected_derivative)
 
+
+class TestDifferentialWithVectorFunction(unittest.TestCase):
     @parameterized.expand([(product,)], testcase_func_name=custom_name_func)
     def test_frechet_derivative_of_bilinear_map(self, bilinear_map):
         # https://math.stackexchange.com/questions/562820/what-is-the-second-frechet-derivative-of-a-bilinear-map
@@ -59,6 +65,8 @@ class TestDifferential(unittest.TestCase):
             atol=1e-5,
         )
 
+
+class TestSecondDifferentialWithVectorFunction(unittest.TestCase):
     @parameterized.expand([(product,)], testcase_func_name=custom_name_func)
     def test_second_frechet_derivative_of_bilinear_map(self, bilinear_map):
         # https://math.stackexchange.com/questions/562820/what-is-the-second-frechet-derivative-of-a-bilinear-map
