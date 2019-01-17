@@ -5,6 +5,7 @@ import logging
 from .ode_step import *
 import logging
 import numpy as np
+import pytest
 
 
 def custom_name_func(testcase_func, param_num, param):
@@ -59,6 +60,7 @@ class TestLobattoCorrespondenceBetweenMethods(unittest.TestCase):
         ],
         testcase_func_name=custom_name_func,
     )
+    @pytest.mark.timeout(5)
     def test_correspondence_between_methods(
         self, order, variant, first_method, second_method
     ):
@@ -104,6 +106,7 @@ class TestLobattoEstimateApproximatesHardcoded(unittest.TestCase):
         ],
         testcase_func_name=custom_name_func,
     )
+    @pytest.mark.timeout(5)
     def test_estimate_approximates_hardcoded(self, order, method):
         [
             np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
