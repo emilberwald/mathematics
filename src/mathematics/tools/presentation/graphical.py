@@ -430,4 +430,3 @@ class LatexWalker:
         else:
             # TODO: add possiblity to return a html page ?
             raise NotImplementedError()
-

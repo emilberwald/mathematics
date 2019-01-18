@@ -136,4 +136,3 @@ def same_coefficient_tensor(
     return mixed_tensor(cls, vector_base, rank, vector_base_to_dual_base)(
         lambda *indices: coefficient
     )
-

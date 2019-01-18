@@ -369,4 +369,3 @@ if __name__ == "__main__":
         r"\\compatability of scalar multiplication with ring unit\\",
         compatible_left_identity_element("R", "A", "\cdot", "1"),
     )
-

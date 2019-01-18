@@ -205,4 +205,3 @@ def div(exterior_derivative, metric_tensor, tensor):
         ]
     ).reshape((nof_dimensions,) * (nof_dimensions - nof_indices + 1))
     return hodge_star(metric_tensor, d_star_tensor_b)
-

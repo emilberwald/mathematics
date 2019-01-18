@@ -153,4 +153,3 @@ def parity(permutation, method: ParityMethod = ParityMethod.permutation_symbol):
         return (-1) ** (sum(left_inversion_count(permutation)))
     else:
         raise NotImplementedError()
-

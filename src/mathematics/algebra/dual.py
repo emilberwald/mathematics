@@ -50,4 +50,3 @@ class dual:
     @staticmethod
     def standard_base_vectorspace(dimension):
         return tuple(integer_partitions(dimension, 1))
-

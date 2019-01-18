@@ -382,4 +382,3 @@ class PredictorCorrector:
 
     def __call__(self, F, t0, y0, delta_t=None):
         delta_t = delta_t if delta_t is None else np.spacing(t0)
-
