@@ -27,11 +27,11 @@ pipeline {
 			{
 			    script{
                     sh label: 'Install dependencies', script: 'pip3 install pytest pytest-timeout pytest-cov sympy parameterized numpy networkx scipy'
-    				try{
+    		try{
     					timeout(time: 60, unit: 'SECONDS') {
     						sh label: 'Test', script: 'python3 -m pytest --cov-report xml:${WORKSPACE}/cov.xml --cov=mathematics --ignore="${WORKSPACE}/mathematics/src/mathematics/tools/presentation/test_graphical.py" --junitxml=${WORKSPACE}/junit.xml'
     					}
-    				} catch (Exception e) {
+    	        	} catch (Exception e) {
     					echo e.toString()  
     				}
 			    }
