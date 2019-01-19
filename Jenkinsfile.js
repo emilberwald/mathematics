@@ -1,61 +1,70 @@
 pipeline {
-  agent any
-  stages {
-    stage('Setup') {
-      steps {
-        cleanWs()
-        checkout([
-          $class: 'GitSCM', branches: [ [ name: '*/master' ] ],
-          doGenerateSubmoduleConfigurations: false, extensions: [ [
-            $class: 'RelativeTargetDirectory', relativeTargetDir: 'mathematics'
-          ] ],
-          submoduleCfg: [],
-          userRemoteConfigs:
-              [ [ url: 'https://github.com/emilberwald/mathematics.git' ] ]
-        ])
-      }
-    }
-    stage('Analyze') {
-      steps {
-        sh label: 'Install dependencies', script: 'pip3 install pylint'
-        dir('mathematics/src') {
-          sh label: 'Pylint',
-              script:
-                  'python3 -m pylint --msg-template=\'{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
-        }
-        recordIssues(tools: [ pyLint(pattern: 'pylint.log') ])
-        archiveArtifacts artifacts: 'pylint.log', onlyIfSuccessful: true
-      }
-    }
-    stage('Test') {
-      steps {
-        script {
-          sh label: 'Install dependencies',
-              script:
-                  'pip3 install pytest pytest-timeout pytest-cov sympy parameterized numpy networkx scipy'
-          try {
-            timeout(time: 60, unit: 'SECONDS') {
-              sh label: 'Test',
-                  script:
-                      'python3 -m pytest --cov-report xml:${WORKSPACE}/cov.xml --cov=mathematics --ignore="${WORKSPACE}/mathematics/src/mathematics/tools/presentation/test_graphical.py" --junitxml=${WORKSPACE}/junit.xml'
+    agent any
+    stages {
+        stage('Setup') {
+            steps {
+                cleanWs()
+                sh label: "Uninstall python modules...",
+                    script: '#!/bin/bash -x\npip3 uninstall -y -r <(pip3 freeze); python3 -m pip uninstall -y -r <(python3 -m pip freeze)'
+                sh label: 'Create python virtual environment',
+                    script: '#!/bin/bash -x\npython3 -m venv --clear --without-pip "${WORKSPACE}/venv";source "${WORKSPACE}/venv/bin/activate";python3 -m ensurepip --upgrade;if [ ! -f "${WORKSPACE}/requirements.txt" ]; then (python3 -m pip -V > "${WORKSPACE}/requirements.txt"; python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt"); fi'
+                checkout([
+                    $class: 'GitSCM', branches: [[name: '*/master']],
+                    doGenerateSubmoduleConfigurations: false, extensions: [[
+                        $class: 'RelativeTargetDirectory', relativeTargetDir: 'mathematics'
+                    ]],
+                    submoduleCfg: [],
+                    userRemoteConfigs:
+                    [[url: 'https://github.com/emilberwald/mathematics.git']]
+                ])
             }
-          } catch (Exception e) {
-            echo e.toString()
-          }
         }
-        cobertura autoUpdateHealth: false, autoUpdateStability: false,
-            coberturaReportFile: 'cov.xml',
-            conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false,
-            failUnstable: false, lineCoverageTargets: '80, 0, 0',
-            maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0',
-            onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
-      }
+        stage('Test') {
+            steps {
+                script {
+                    sh label: 'Install dependencies',
+                        script: '#!/bin/bash -x\nsource "${WORKSPACE}/venv/bin/activate";python3 -m pip install -r ${WORKSPACE}/mathematics/requirements.txt'
+                    sh label: 'Add used dependencies',
+                        script: '#!/bin/bash -x\nsource "${WORKSPACE}/venv/bin/activate";python3 -m pip -V | tee -a "${WORKSPACE}/requirements.txt"; python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt"'
+                    try {
+                        timeout(time: 60, unit: 'SECONDS') {
+                            sh label: 'Test',
+                                script: '#!/bin/bash -x\nsource "${WORKSPACE}/venv/bin/activate";python3 -m pytest --cov-report xml:${WORKSPACE}/cov.xml --cov=mathematics --ignore="${WORKSPACE}/mathematics/src/mathematics/tools/presentation/test_graphical.py" --junitxml=${WORKSPACE}/junit.xml'
+                        }
+                    } catch (Exception e) {
+                        echo e.toString()
+                    }
+                    sh label: 'Add used dependencies',
+                        script: '#!/bin/bash -x\nsource "${WORKSPACE}/venv/bin/activate";python3 -m pip -V | tee -a "${WORKSPACE}/requirements.txt"; python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt"'
+                }
+                cobertura autoUpdateHealth: false, autoUpdateStability: false,
+                    coberturaReportFile: 'cov.xml',
+                        conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false,
+                            failUnstable: false, lineCoverageTargets: '80, 0, 0',
+                                maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0',
+                                    onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+            }
+        }
+        stage('Analyze') {
+            steps{
+                sh label: 'Install dependencies',
+                    script : '#!/bin/bash -x\nsource "${WORKSPACE}/venv/bin/activate";python3 -m pip install pylint'
+                dir('mathematics/src') {
+                    sh label: 'Pylint',
+                        script: '#!/bin/bash -x\nsource "${WORKSPACE}/venv/bin/activate";python3 -m pylint --msg-template=\'{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
+                }
+                recordIssues(tools: [pyLint(pattern: 'pylint.log')])
+                sh label: 'Add used dependencies',
+                    script: '#!/bin/bash -x\nsource "${WORKSPACE}/venv/bin/activate";python3 -m pip -V | tee -a "${WORKSPACE}/requirements.txt"; python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt"'
+            }
+        }
+        stage('Archive') {
+            steps {
+                junit allowEmptyResults: true, testResults: '*.xml'
+                archiveArtifacts artifacts: 'pylint.log', onlyIfSuccessful: false
+                archiveArtifacts artifacts: '*.xml', onlyIfSuccessful: false
+                archiveArtifacts artifacts: 'requirements.txt', onlyIfSuccessful: false
+            }
+        }
     }
-    stage('Archive') {
-      steps {
-        junit allowEmptyResults: true, testResults: '*.xml'
-        archiveArtifacts artifacts: '*.xml', onlyIfSuccessful: true
-      }
-    }
-  }
 }
