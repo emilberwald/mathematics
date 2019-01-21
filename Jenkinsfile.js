@@ -3,20 +3,10 @@ pipeline {
     stages {
         stage('Setup') {
             steps {
-                cleanWs()
                 sh label: "Uninstall python modules...",
                     script: '#!/bin/bash -x\npip3 uninstall -y -r <(pip3 freeze); python3 -m pip uninstall -y -r <(python3 -m pip freeze)'
                 sh label: 'Create python virtual environment',
                     script: '#!/bin/bash -x\npython3 -m venv --clear --without-pip "${WORKSPACE}/venv";source "${WORKSPACE}/venv/bin/activate";python3 -m ensurepip --upgrade;if [ ! -f "${WORKSPACE}/requirements.txt" ]; then (python3 -m pip -V > "${WORKSPACE}/requirements.txt"; python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt"); fi'
-                checkout([
-                    $class: 'GitSCM', branches: [[name: '*/master']],
-                    doGenerateSubmoduleConfigurations: false, extensions: [[
-                        $class: 'RelativeTargetDirectory', relativeTargetDir: 'mathematics'
-                    ]],
-                    submoduleCfg: [],
-                    userRemoteConfigs:
-                    [[url: 'https://github.com/emilberwald/mathematics.git']]
-                ])
             }
         }
         stage('Test') {
