@@ -4,9 +4,19 @@ pipeline {
         stage('Setup') {
             steps {
                 sh label: "Uninstall python modules...",
-                    script: '#!/bin/bash -x\npip3 uninstall -y -r <(pip3 freeze); python3 -m pip uninstall -y -r <(python3 -m pip freeze)'
+                    script: '#!/bin/bash -x                                             \n\
+                    pip3 uninstall -y -r <(pip3 freeze);                                \n\
+                    python3 -m pip uninstall -y -r <(python3 -m pip freeze);'
                 sh label: 'Create python virtual environment',
-                    script: '#!/bin/bash -x\npython3 -m venv --clear --without-pip "${WORKSPACE}/venv";source "${WORKSPACE}/venv/bin/activate";python3 -m ensurepip --upgrade;if [ ! -f "${WORKSPACE}/requirements.txt" ]; then (python3 -m pip -V > "${WORKSPACE}/requirements.txt"; python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt"); fi'
+                    script: '#!/bin/bash -x                                             \n\
+                    python3 -m venv --clear --without-pip "${WORKSPACE}/venv";          \n\
+                    source "${WORKSPACE}/venv/bin/activate";                            \n\
+                    python3 -m ensurepip --upgrade;                                     \n\
+                    if [ ! -f "${WORKSPACE}/requirements.txt" ];                        \n\
+                    then                                                                \n\
+                    (python3 -m pip -V > "${WORKSPACE}/requirements.txt";               \n\
+                    python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt");    \n\
+                    fi'
             }
         }
         stage('Test') {
