@@ -19,6 +19,7 @@ python3 -m pip uninstall -y -r <(python3 -m pip freeze);'
 python3 -m venv --clear --without-pip "${WORKSPACE}/venv";              \n\
 source "${WORKSPACE}/venv/bin/activate";                                \n\
 python3 -m ensurepip --upgrade;                                         \n\
+python3 -m pip install -U pip;                                          \n\
 if [ ! -f "${WORKSPACE}/requirements.txt" ];                            \n\
 then                                                                    \n\
 (python3 -m pip -V > "${WORKSPACE}/requirements.txt";                   \n\
