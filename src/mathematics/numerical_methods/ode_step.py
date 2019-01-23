@@ -1,308 +1,390 @@
+"""
+Functionality for stepping forward in dynamical systems.
+"""
+
 import operator
 import logging
-import collections
 import math
 import numpy as np
 import scipy as sp
-import scipy.optimize
-from .butcher_tableu import butcher_tableu
+from scipy import optimize
+from .butcher_tableu import BUTCHER_TABLEU
 
 
 class Lobatto:
-    # Attempts to follow
-    # L.O. Jay: Lobatto methods. [online, .pdf]. Encyclopedia of Applied and Computational Mathematics [.pdf], Numerical Analysis of Ordinary Differential Equations, Springer - The Language of Science, Bj\"orn Engquist (Ed.), 2015.
-    # http://homepage.math.uiowa.edu/~ljay/publications.html
-    @staticmethod
-    def pack(a, b, c):
-        X = np.hstack((np.ravel(a), np.ravel(b), np.ravel(c)))
-        return X
+    """
+    Attempts to follow
+    L.O. Jay: Lobatto methods. [online, .pdf]. Encyclopedia of Applied and
+    Computational Mathematics [.pdf], Numerical Analysis of Ordinary
+    Differential Equations, Springer - The Language of Science, Bj\"orn
+    Engquist (Ed.), 2015.
+    http://homepage.math.uiowa.edu/~ljay/publications.html
+    """
 
     @staticmethod
-    def unpack(X):
-        s = int(math.sqrt(len(X) + 1) - 1)
-        a = X[: -2 * s].reshape(s, s)
-        b = X[-2 * s : -s]
-        c = X[-s:]
-        return a, b, c
+    def pack(butcher_matrix, weights, abscissae):
+        model_parameters = np.hstack(
+            (np.ravel(butcher_matrix), np.ravel(weights), np.ravel(abscissae))
+        )
+        return model_parameters
+
+    @staticmethod
+    def unpack(model_parameters):
+        dimension = int(math.sqrt(len(model_parameters) + 1) - 1)
+        butcher_matrix = model_parameters[: -2 * dimension].reshape(
+            dimension, dimension
+        )
+        weights = model_parameters[-2 * dimension : -dimension]
+        abscissae = model_parameters[-dimension:]
+        return butcher_matrix, weights, abscissae
 
     @classmethod
-    def assumption_B(cls, p):
-        def null_system_for_assumption(X):
-            a, b, c = cls.unpack(X)
-            s = len(c)
+    def assumption_b(cls, nof_orders):
+        def null_system_for_assumption(model_parameters):
+            _, weights, abscissae = cls.unpack(model_parameters)
+            dimension = len(abscissae)
             return [
-                sum([b[j] * (c[j] ** (k - 1.0)) for j in range(s)]) - 1.0 / k
-                for k in range(1, p + 1)
+                sum(
+                    [
+                        weights[dimension_no]
+                        * (abscissae[dimension_no] ** (order_no - 1.0))
+                        for dimension_no in range(dimension)
+                    ]
+                )
+                - 1.0 / order_no
+                for order_no in range(1, nof_orders + 1)
             ]
 
         return null_system_for_assumption
 
     @classmethod
-    def assumption_C(cls, q):
-        def null_system_for_assumption(X):
-            a, b, c = cls.unpack(X)
-            s = len(c)
+    def assumption_c(cls, nof_orders):
+        def null_system_for_assumption(model_parameters):
+            butcher_matrix, _, abscissae = cls.unpack(model_parameters)
+            nof_dimensions = len(abscissae)
             return [
-                sum([(c[j] ** (k - 1)) * a[i, j] for j in range(s)]) - (c[i] ** k) / k
-                for i in range(s)
-                for k in range(1, q + 1)
+                sum(
+                    [
+                        (abscissae[dimension_j] ** (order_no - 1))
+                        * butcher_matrix[dimension_i, dimension_j]
+                        for dimension_j in range(nof_dimensions)
+                    ]
+                )
+                - (abscissae[dimension_i] ** order_no) / order_no
+                for dimension_i in range(nof_dimensions)
+                for order_no in range(1, nof_orders + 1)
             ]
 
         return null_system_for_assumption
 
     @classmethod
-    def assumption_D(cls, r):
-        def null_system_for_assumption(X):
-            a, b, c = cls.unpack(X)
-            s = len(c)
+    def assumption_d(cls, nof_orders):
+        def null_system_for_assumption(model_parameters):
+            butcher_matrix, weights, abscissae = cls.unpack(model_parameters)
+            nof_dimensions = len(abscissae)
             return [
-                sum([b[i] * (c[i] ** (k - 1.0)) * a[i, j] for i in range(s)])
-                - (b[j] / k) * (1.0 - (c[j]) ** k)
-                for j in range(s)
-                for k in range(1, r + 1)
+                sum(
+                    [
+                        weights[dimension_i]
+                        * (abscissae[dimension_i] ** (order_no - 1.0))
+                        * butcher_matrix[dimension_i, dimension_j]
+                        for dimension_i in range(nof_dimensions)
+                    ]
+                )
+                - (weights[dimension_j] / order_no)
+                * (1.0 - (abscissae[dimension_j]) ** order_no)
+                for dimension_j in range(nof_dimensions)
+                for order_no in range(1, nof_orders + 1)
             ]
 
         return null_system_for_assumption
 
     @classmethod
-    def shared_constraints(cls, soft, X):
-        a, b, c = cls.unpack(X)
-        s = len(c)
+    def shared_constraints(cls, soft, model_parameters):
+        _, weights, abscissae = cls.unpack(model_parameters)
+        nof_dimensions = len(abscissae)
         return [
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_B(2 * s - 2)(X)
+                for constraint in cls.assumption_b(2 * nof_dimensions - 2)(
+                    model_parameters
+                )
             ],
-            [soft(c[0], operator.eq, 0.0), soft(c[-1], operator.eq, 1.0)],
-            [soft(0, operator.le, ci) for ci in c],
-            [soft(ci, operator.le, 1.0) for ci in c],
-            [soft(c[i], operator.lt, c[i + 1]) for i in range(s - 1)],
-            # This version did not give good results !? Something wrong with it? Keep the alternative one for the endpoints meanwhile.
+            [
+                soft(abscissae[0], operator.eq, 0.0),
+                soft(abscissae[-1], operator.eq, 1.0),
+            ],
+            [soft(0, operator.le, ci) for ci in abscissae],
+            [soft(ci, operator.le, 1.0) for ci in abscissae],
+            [
+                soft(abscissae[i], operator.lt, abscissae[i + 1])
+                for i in range(nof_dimensions - 1)
+            ],
+            # This version did not give good results !? Something wrong with it?
+            # Keep the alternative one for the endpoints meanwhile.
             # [
             #     soft(
             #         bj,
             #         operator.eq,
             #         1.0
             #         / (
-            #             s
-            #             * (s - 1)
+            #             nof_dimensions
+            #             * (nof_dimensions - 1)
             #             * (
             #                 np.polynomial.legendre.legval(
-            #                     (2 * cj - 1), [1 if i == s - 1 else 0 for i in range(s)]
+            #                     (2 * cj - 1),
+            #                     [
+            #                         1 if dimension_ii == nof_dimensions - 1 else 0
+            #                         for dimension_i in range(nof_dimensions)
+            #                     ],
             #                 )
             #                 ** 2
             #             )
             #         ),
             #     )
-            #     for bj, cj in zip(b, c)
+            #     for bj, cj in zip(weights, abscissae)
             # ],
             [
-                soft(b[0], operator.eq, 1 / (s * (s - 1))),
-                soft(b[-1], operator.eq, 1 / (s * (s - 1))),
+                soft(
+                    weights[0], operator.eq, 1 / (nof_dimensions * (nof_dimensions - 1))
+                ),
+                soft(
+                    weights[-1],
+                    operator.eq,
+                    1 / (nof_dimensions * (nof_dimensions - 1)),
+                ),
             ],
-            [soft(bj, operator.gt, 0.0) for bj in b],
-            # unit tests failed with these -- perhaps they were implemented wrong? or overdetermined system makes the solution wonky?
-            # [soft(c[-(1 + j)], operator.eq, 1.0 - c[j]) for j in range(s)],
-            # [soft(b[-(1 + j)], operator.eq, b[j]) for j in range(s)],
+            [soft(bj, operator.gt, 0.0) for bj in weights],
+            # unit tests failed with these -- perhaps they were implemented wrong?
+            # or overdetermined system makes the solution wonky?
+            # [
+            #     soft(
+            #         abscissae[-(1 + dimension)], operator.eq, 1.0 - abscissae[dimension]
+            #     )
+            #     for dimension in range(nof_dimensions)
+            # ],
+            # [
+            #     soft(weights[-(1 + dimension)], operator.eq, weights[dimension])
+            #     for dimension in range(nof_dimensions)
+            # ],
         ]
 
     @classmethod
-    def IIIA(cls, soft, X):
-        a, b, c = cls.unpack(X)
-        s = len(c)
+    def iiia(cls, soft, model_parameters):
+        butcher_matrix, weights, abscissae = cls.unpack(model_parameters)
+        nof_dimensions = len(abscissae)
         return [
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_C(s)(X)
+                for constraint in cls.assumption_c(nof_dimensions)(model_parameters)
             ],
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_D(s - 2)(X)
+                for constraint in cls.assumption_d(nof_dimensions - 2)(model_parameters)
             ],
-            [soft(a1j, operator.eq, 0.0) for a1j in a[0]],
-            [soft(asj, operator.eq, bj) for asj, bj in zip(a[-1], b)],
+            [soft(a1j, operator.eq, 0.0) for a1j in butcher_matrix[0]],
+            [
+                soft(asj, operator.eq, bj)
+                for asj, bj in zip(butcher_matrix[-1], weights)
+            ],
         ]
 
     @classmethod
-    def IIIB(cls, soft, X):
-        a, b, c = cls.unpack(X)
-        s = len(c)
+    def iiib(cls, soft, model_parameters):
+        butcher_matrix, weights, abscissae = cls.unpack(model_parameters)
+        nof_dimensions = len(abscissae)
         return [
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_C(s - 2)(X)
+                for constraint in cls.assumption_c(nof_dimensions - 2)(model_parameters)
             ],
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_D(s)(X)
+                for constraint in cls.assumption_d(nof_dimensions)(model_parameters)
             ],
-            [soft(ai[0], operator.eq, b[0]) for ai in a],
-            [soft(ai[-1], operator.eq, 0.0) for ai in a],
+            [soft(ai[0], operator.eq, weights[0]) for ai in butcher_matrix],
+            [soft(ai[-1], operator.eq, 0.0) for ai in butcher_matrix],
         ]
 
     @classmethod
-    def IIIC(cls, soft, X):
-        a, b, c = cls.unpack(X)
-        s = len(c)
+    def iiic(cls, soft, model_parameters):
+        butcher_matrix, weights, abscissae = cls.unpack(model_parameters)
+        nof_dimensions = len(abscissae)
         return [
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_C(s - 1)(X)
+                for constraint in cls.assumption_c(nof_dimensions - 1)(model_parameters)
             ],
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_D(s - 1)(X)
+                for constraint in cls.assumption_d(nof_dimensions - 1)(model_parameters)
             ],
-            [soft(ai[0], operator.eq, b[0]) for ai in a],
-            [soft(asj, operator.eq, bj) for asj, bj in zip(a[-1], b)],
+            [soft(ai[0], operator.eq, weights[0]) for ai in butcher_matrix],
+            [
+                soft(asj, operator.eq, bj)
+                for asj, bj in zip(butcher_matrix[-1], weights)
+            ],
         ]
 
     @classmethod
-    def IIICstar(cls, soft, X):
-        a, b, c = cls.unpack(X)
-        s = len(c)
+    def iiicstar(cls, soft, model_parameters):
+        butcher_matrix, _, abscissae = cls.unpack(model_parameters)
+        nof_dimensions = len(abscissae)
         return [
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_C(s - 1)(X)
+                for constraint in cls.assumption_c(nof_dimensions - 1)(model_parameters)
             ],
             [
                 soft(constraint, operator.eq, 0.0)
-                for constraint in cls.assumption_D(s - 1)(X)
+                for constraint in cls.assumption_d(nof_dimensions - 1)(model_parameters)
             ],
-            [soft(ai[-1], operator.eq, 0.0) for ai in a],
-            [soft(a1j, operator.eq, 0.0) for a1j in a[0]],
+            [soft(ai[-1], operator.eq, 0.0) for ai in butcher_matrix],
+            [soft(a1j, operator.eq, 0.0) for a1j in butcher_matrix[0]],
         ]
 
     @classmethod
     def create_constraint_system(
         cls, specific_constraints, soft=lambda x, cmp, y: cmp(x, y)
     ):
-        def system(X):
+        def system(model_parameters):
             return np.hstack(
-                (*cls.shared_constraints(soft, X), *specific_constraints(soft, X))
+                (
+                    *cls.shared_constraints(soft, model_parameters),
+                    *specific_constraints(soft, model_parameters),
+                )
             )
 
         return system
 
     @classmethod
-    def estimate_butcher_tableu(cls, s, specific_constraints=None, initial_guess=None):
+    def estimate_butcher_tableu(
+        cls, nof_dimensions, specific_constraints=None, initial_guess=None
+    ):
         specific_constraints = (
-            cls.IIIC if specific_constraints is None else specific_constraints
+            cls.iiic if specific_constraints is None else specific_constraints
         )
         if initial_guess is None:
-            a = [[0.0 for i in range(s)] for j in range(s)]
-            b = [0.0 for i in range(s)]
-            c = [0.0 for i in range(s)]
-            c[0] = 0.0
-            c[-1] = 1.0
+            butcher_matrix = [
+                [0.0 for i in range(nof_dimensions)] for j in range(nof_dimensions)
+            ]
+            weights = [0.0 for i in range(nof_dimensions)]
+            abscissae = [0.0 for i in range(nof_dimensions)]
+            abscissae[0] = 0.0
+            abscissae[-1] = 1.0
         else:
-            a, b, c = initial_guess
+            butcher_matrix, weights, abscissae = initial_guess
 
-        soft_min = lambda lhs, cmp, rhs: (not (cmp(lhs, rhs))) * np.linalg.norm(
-            lhs - rhs
-        )
+        soft_min = lambda lhs, cmp, rhs: (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
         constraints_min = cls.create_constraint_system(specific_constraints, soft_min)
         system_to_minimize = lambda x: np.linalg.norm(constraints_min(x))
 
-        soft_0 = lambda lhs, cmp, rhs: (not (cmp(lhs, rhs))) * np.linalg.norm(lhs - rhs)
-        constraints_0 = cls.create_constraint_system(specific_constraints, soft_0)
-        system_to_find_kernel = lambda x: constraints_0(x)
+        soft_0 = lambda lhs, cmp, rhs: (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
+        system_to_find_kernel = cls.create_constraint_system(
+            specific_constraints, soft_0
+        )
 
-        constraints_req = cls.create_constraint_system(specific_constraints)
-        system_requirements = lambda x: constraints_req(x)
+        system_requirements = cls.create_constraint_system(specific_constraints)
 
-        def try_to_minimize(a, b, c, epsilon=1e-1):
-            sol = sp.optimize.minimize(system_to_minimize, cls.pack(a, b, c))
+        def try_to_minimize(butcher_matrix, weights, abscissae, epsilon=1e-1):
+            sol = sp.optimize.minimize(
+                system_to_minimize, cls.pack(butcher_matrix, weights, abscissae)
+            )
             if sol.success:
                 cost = system_to_minimize(sol.x)
-                a, b, c = cls.unpack(sol.x)
-                return a, b, c, cost, sol.success
+                butcher_matrix, weights, abscissae = cls.unpack(sol.x)
+                return butcher_matrix, weights, abscissae, cost, sol.success
             else:
                 if "x" in sol:
                     cost = system_to_minimize(sol.x)
                     if cost < epsilon:
-                        a, b, c = cls.unpack(sol.x)
-                        return a, b, c, cost, sol.success
+                        butcher_matrix, weights, abscissae = cls.unpack(sol.x)
+                        return butcher_matrix, weights, abscissae, cost, sol.success
 
-        def try_to_find_kernel(a, b, c):
+        def try_to_find_kernel(butcher_matrix, weights, abscissae):
             # Need to choose a solver that allows for the output to be different than the input
             sol = sp.optimize.root(
-                system_to_find_kernel, cls.pack(a, b, c), method="lm"
+                system_to_find_kernel,
+                cls.pack(butcher_matrix, weights, abscissae),
+                method="lm",
             )
             if sol.success:
                 residual = system_to_find_kernel(sol.x)
-                a, b, c = cls.unpack(sol.x)
-                return a, b, c, residual, sol.success
+                butcher_matrix, weights, abscissae = cls.unpack(sol.x)
+                return butcher_matrix, weights, abscissae, residual, sol.success
 
         def check_converged(saved, latest):
-            a, b, c = latest
-            reqs = system_requirements(cls.pack(a, b, c))
+            butcher_matrix, weights, abscissae = latest
+            reqs = system_requirements(cls.pack(butcher_matrix, weights, abscissae))
             if all(
                 [np.allclose(savedi, latesti) for savedi, latesti in zip(saved, latest)]
             ):
-                c[0] = 0.0
-                c[-1] = 1.0
-                return (a.tolist(), b.tolist(), c.tolist()), True, sum(reqs)
+                abscissae[0] = 0.0
+                abscissae[-1] = 1.0
+                return (
+                    (butcher_matrix.tolist(), weights.tolist(), abscissae.tolist()),
+                    True,
+                    sum(reqs),
+                )
             else:
-                c[0] = 0.0
-                c[-1] = 1.0
-                return (a, b, c), False, sum(reqs)
+                abscissae[0] = 0.0
+                abscissae[-1] = 1.0
+                return (butcher_matrix, weights, abscissae), False, sum(reqs)
 
-        saved_0 = (a, b, c)
-        saved_min = (a, b, c)
+        saved_0 = (butcher_matrix, weights, abscissae)
+        saved_min = (butcher_matrix, weights, abscissae)
         while True:
-            for attemptNo in range(2):
-                result_0 = try_to_find_kernel(a, b, c)
+            for _ in range(2):
+                result_0 = try_to_find_kernel(butcher_matrix, weights, abscissae)
                 if result_0:
-                    a, b, c, residual_0, success = result_0
+                    butcher_matrix, weights, abscissae, _, _ = result_0
                     saved_0, converged_0, quality_0 = check_converged(
-                        saved_0, (a, b, c)
+                        saved_0, (butcher_matrix, weights, abscissae)
                     )
                     if converged_0:
                         return saved_0
 
-            for attemptNo in range(2):
-                result_min = try_to_minimize(a, b, c)
+            for _ in range(2):
+                result_min = try_to_minimize(butcher_matrix, weights, abscissae)
                 if result_min:
-                    a, b, c, residual_min, success = result_min
+                    butcher_matrix, weights, abscissae, _, _ = result_min
                     saved_min, converged_min, quality_min = check_converged(
-                        saved_min, (a, b, c)
+                        saved_min, (butcher_matrix, weights, abscissae)
                     )
                     if converged_min:
                         return saved_min
             try:
                 if converged_0 and converged_min:
                     return saved_0 if quality_0 < quality_min else saved_min
-            except UnboundLocalError as e:
-                logging.error(e)
+            except UnboundLocalError as exc:
+                logging.error(exc)
                 return None
 
     @classmethod
-    def hardcoded_butcher_tableu(cls, p, identifier):
-        if identifier == cls.IIIA:
+    def hardcoded_butcher_tableu(cls, order, identifier):
+        if operator.eq(identifier, cls.iiia):
             name = "lobatto_iiia"
-        elif identifier == cls.IIIB:
+        elif operator.eq(identifier, cls.iiib):
             name = "lobatto_iiib"
-        elif identifier == cls.IIIC:
+        elif operator.eq(identifier, cls.iiic):
             name = "lobatto_iiic"
-        elif identifier == cls.IIICstar:
+        elif operator.eq(identifier, cls.iiicstar):
             name = "lobatto_iiic*"
         else:
             name = identifier
         try:
             return (
-                butcher_tableu[name]["butcher_matrix"][p],
-                butcher_tableu[name]["weights"][p],
-                butcher_tableu[name]["abscissae"][p],
+                BUTCHER_TABLEU[name]["butcher_matrix"][order],
+                BUTCHER_TABLEU[name]["weights"][order],
+                BUTCHER_TABLEU[name]["abscissae"][order],
             )
         except KeyError:
             return None
 
     @classmethod
-    def butcher_tableu(cls, p, identifier):
-        result = cls.hardcoded_butcher_tableu(p, identifier)
-        return result if result else cls.estimate_butcher_tableu(p, identifier)
+    def butcher_tableu(cls, order, identifier):
+        result = cls.hardcoded_butcher_tableu(order, identifier)
+        return result if result else cls.estimate_butcher_tableu(order, identifier)
 
 
 class RungeKutta:
@@ -318,61 +400,113 @@ class RungeKutta:
 	"""
 
     @staticmethod
-    def general_k(a, c, F, t0, y0, delta_t):
-        def system_for_k(k):
+    def general_intermediate_stages(
+        butcher_matrix, abscissae, function, t_0, y_0, delta_t
+    ):
+        def system_for_intermediate_stages(intermediate_stages):
+            nof_dimensions = len(abscissae)
             return [
-                F(
-                    t0 + c[i] * delta_t,
-                    y0 + delta_t * sum([a[i][j] * k[j] for j in range(len(k))]),
+                function(
+                    t_0 + abscissae[dimension_i] * delta_t,
+                    y_0
+                    + delta_t
+                    * sum(
+                        [
+                            butcher_matrix[dimension_i][dimension_j]
+                            * intermediate_stages[dimension_j]
+                            for dimension_j in range(nof_dimensions)
+                        ]
+                    ),
                 )
-                - k[i]
-                for i in range(len(c))
+                - intermediate_stages[dimension_i]
+                for dimension_i in range(nof_dimensions)
             ]
 
-        sol = sp.optimize.root(system_for_k, np.ones_like(c))
+        sol = sp.optimize.root(system_for_intermediate_stages, np.ones_like(abscissae))
         return sol.x
 
     @staticmethod
-    def explicit_k(a, c, F, t0, y0, delta_t):
-        k = np.zeros_like(c)
-        for i in range(len(c)):
-            k[i] = F(
-                t0 + c[i] * delta_t,
-                y0 + delta_t * sum([a[i][j] * k[j] for j in range(len(k))]),
+    def explicit_intermediate_stages(
+        butcher_matrix, abscissae, function, t_0, y_0, delta_t
+    ):
+        intermediate_stages = np.zeros_like(abscissae)
+        nof_dimensions = len(abscissae)
+        for dimension_i in range(nof_dimensions):
+            intermediate_stages[dimension_i] = function(
+                t_0 + abscissae[dimension_i] * delta_t,
+                y_0
+                + delta_t
+                * sum(
+                    [
+                        butcher_matrix[dimension_i][dimension_j]
+                        * intermediate_stages[dimension_j]
+                        for dimension_j in range(nof_dimensions)
+                    ]
+                ),
             )
-        return k
+        return intermediate_stages
 
     @classmethod
-    def solve_for_k(cls, a, c, F, t0, y0, delta_t):
-        if np.allclose(a, np.tril(a, -1)) and np.allclose(c, [0] + c[1:]):
-            return cls.explicit_k(a, c, F, t0, y0, delta_t)
+    def solve_for_intermediate_stages(
+        cls, butcher_matrix, abscissae, function, t_0, y_0, delta_t
+    ):
+        if np.allclose(butcher_matrix, np.tril(butcher_matrix, -1)) and np.allclose(
+            abscissae, [0] + abscissae[1:]
+        ):
+            return cls.explicit_intermediate_stages(
+                butcher_matrix, abscissae, function, t_0, y_0, delta_t
+            )
         else:
-            return cls.general_k(a, c, F, t0, y0, delta_t)
+            return cls.general_intermediate_stages(
+                butcher_matrix, abscissae, function, t_0, y_0, delta_t
+            )
 
     @staticmethod
-    def consistent_c(a):
-        return [sum([aij for aij in ai]) for ai in a]
+    def consistent_abscissae(butcher_matrix):
+        return [sum([aij for aij in ai]) for ai in butcher_matrix]
 
     @staticmethod
-    def step(b, F, y0, delta_t, k):
-        return y0 + delta_t * sum([b[i] * k[i] for i in range(len(b))])
+    def step(weights, _, y_0, delta_t, intermediate_stage):
+        return y_0 + delta_t * sum(
+            [weights[i] * intermediate_stage[i] for i in range(len(weights))]
+        )
 
     @staticmethod
-    def error_estimate(b, bstar, delta_t, k):
-        return delta_t * sum([(b[i] - bstar[i]) * k[i] for i in range(len(b))])
+    def error_estimate(weights, weights_star, delta_t, intermediate_stages):
+        nof_dimensions = len(weights)
+        return delta_t * sum(
+            [
+                (weights[dimension_i] - weights_star[dimension_i])
+                * intermediate_stages[dimension_i]
+                for dimension_i in range(nof_dimensions)
+            ]
+        )
 
-    def __init__(self, F, t0, y0, a, b, c=None):
-        self.a = a
-        self.b = b
-        self.c = self.consistent_c(a) if c is None else c
-        self.F = F
-        self.t0 = t0
-        self.y0 = y0
-        self.k = None
+    def __init__(self, function, t_0, y_0, butcher_matrix, weights, abscissae=None):
+        self.butcher_matrix = butcher_matrix
+        self.weights = weights
+        self.abscissae = (
+            self.consistent_abscissae(butcher_matrix)
+            if abscissae is None
+            else abscissae
+        )
+        self.function = function
+        self.t_0 = t_0
+        self.y_0 = y_0
+        self.intermediate_stages = None
 
     def __call__(self, delta_t):
-        self.k = self.solve_for_k(self.a, self.c, self.F, self.t0, self.y0, delta_t)
-        return self.step(self.b, self.F, self.y0, delta_t, self.k)
+        self.intermediate_stages = self.solve_for_intermediate_stages(
+            self.butcher_matrix,
+            self.abscissae,
+            self.function,
+            self.t_0,
+            self.y_0,
+            delta_t,
+        )
+        return self.step(
+            self.weights, self.function, self.y_0, delta_t, self.intermediate_stages
+        )
 
 
 class PredictorCorrector:
@@ -380,5 +514,5 @@ class PredictorCorrector:
         self.predictor = predictor
         self.corrector = corrector
 
-    def __call__(self, F, t0, y0, delta_t=None):
-        delta_t = delta_t if delta_t is None else np.spacing(t0)
+    def __call__(self, function, t_0, y_0, delta_t=None):
+        delta_t = delta_t if delta_t is None else np.spacing(t_0)

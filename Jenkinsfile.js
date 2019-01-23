@@ -65,7 +65,7 @@ python3 -m pip install pylint'
           sh label: 'Pylint', script: '\
 #!/bin/bash -x                                                                                                                      \n\
 source "${WORKSPACE}/venv/bin/activate";                                                                                            \n\
-python3 -m pylint --msg-template=\'{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
+python3 -m pylint --msg-template=\'{abspath}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
         }
         recordIssues(tools: [ pyLint(pattern: 'pylint.log') ])
         addUsedDependencies();

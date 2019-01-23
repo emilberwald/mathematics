@@ -1,8 +1,10 @@
 from math import sqrt
 
 # http://homepage.math.uiowa.edu/~ljay/publications.html
-# L.O. Jay: Lobatto methods. [online, .pdf]. Encyclopedia of Applied and Computational Mathematics [.pdf], Numerical Analysis of Ordinary Differential Equations, Springer - The Language of Science, Bj\"orn Engquist (Ed.), 2015.
-butcher_tableu = {
+# L.O. Jay: Lobatto methods. [online, .pdf]. Encyclopedia of Applied and
+# Computational Mathematics [.pdf], Numerical Analysis of Ordinary Differential
+#  Equations, Springer - The Language of Science, Bj\"orn Engquist (Ed.), 2015.
+BUTCHER_TABLEU = {
     "lobatto_iiia": {
         "butcher_matrix": {
             2: [[0, 0], [1 / 2, 1 / 2]],

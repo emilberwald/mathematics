@@ -19,8 +19,25 @@ def canonical_order(cycle):
 
 def permutation_to_cycles(permutation):
     """
-	:param permutation: [description]
-	:type permutation: [type]
+	:param permutation: permutation in 'one line notation' (https://en.wikipedia.org/wiki/Permutation#One-line_notation),
+                        e.g. if (0,1,2) -> (2,1,0) under the permutation then the permutation is (2,1,0)
+
+    :return:            returns the decomposition into disjoint cycles (as a set of tuples).
+                        https://en.wikipedia.org/wiki/Iterated_function#Definition
+                        Iterate 0:                  f^0 = id
+                        Iterate n+1:                f^{n+1}(x) = f(f^{n}(x))
+                        Periodic orbit:             f^{n+m}(x) = f^{n}(x)
+                            Periodic point: x
+                            Smallest value m for a given periodic point x is called the period of the orbit.
+                        https://en.wikipedia.org/wiki/Cycle_detection
+                        Here we learn that in general for function iterates over a finite set there might be a starting subsequence that is not
+                        repeated and that there will be an periodic orbit (repeating sequence, cycle, loop, ...).
+
+                        A cycle is a periodic orbit, with the iterated function being the permutation. 
+                        Any element of the iterated sequence is a periodic point, so there is an equivalence class of cycles
+                        that represent the same iterated sequence modulo starting point.
+                        A canonical order is a way to choose representatives from these equivalence classes by choosing starting point
+                        in an ordered fashion.
 	"""
 
     codomain = list(permutation)
@@ -28,21 +45,23 @@ def permutation_to_cycles(permutation):
     shifted_codomain = [v - offset for v in codomain]
 
     cycles = list()
-    for s in shifted_codomain:
-        if any([s in cycle for cycle in cycles]):
+    for starting_point in shifted_codomain:
+        if any([starting_point in cycle for cycle in cycles]):
             continue
         else:
             cycle = list()
-            cycle.append(s)
+            cycle.append(starting_point)
             while True:
-                value = shifted_codomain[cycle[-1]]
-                if value != cycle[0]:
-                    cycle.append(value)
+                iterate = shifted_codomain[cycle[-1]]
+                if iterate != cycle[0]:
+                    cycle.append(iterate)
                     continue
                 else:
                     break
             cycles.append(cycle)
-    return {canonical_order([v + offset for v in cycle]) for cycle in cycles}
+    return {
+        canonical_order([iterate + offset for iterate in cycle]) for cycle in cycles
+    }
 
 
 def permutation_to_transpositions(permutation):
