@@ -2,7 +2,7 @@ import unittest
 from .multi_index import *
 
 
-class test_multi_index(unittest.TestCase):
+class TestMultiIndex(unittest.TestCase):
     def test_factorial(self):
-        a = multi_index((1, 2, 3))
-        self.assertAlmostEqual(a.factorial(), 12)
+        alfa = MultiIndex((1, 2, 3))
+        self.assertAlmostEqual(alfa.factorial(), 12)

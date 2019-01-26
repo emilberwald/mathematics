@@ -37,10 +37,10 @@ def left_or(sequent, A_or_B):
     """Assumes the node in question is the tuple A,_or_,B = A_or_B
 	"""
     assert A_or_B in sequent.nodes()
+    A, _, B = A_or_B
     result = [networkx.MultiDiGraph(), networkx.MultiDiGraph()]
     result[0].add_node(A)
     result[1].add_node(B)
-    A, _or_, B = A_or_B
     for rhs_nodes in sequent.successors(A_or_B):
         for rhs_node in rhs_nodes:
             result[0].add_node(rhs_node)

@@ -18,11 +18,23 @@ class TestLatexWalker_Text(unittest.TestCase):
     )
     def test_LatexWalker_unicode(self, traversal, presentation):
         LatexNode.presentation = presentation
-        V = "V"
-        R = "R"
-        A = "A"
-        plus = Operation(A, A, codomain=A, symbol="+", algebraic_structure=A)
-        scalprod = Operation(R, A, codomain=A, symbol=" \cdot ", algebraic_structure=V)
+        vector_space = "V"
+        real_values = "R"
+        abelian_group = "A"
+        plus = Operation(
+            abelian_group,
+            abelian_group,
+            codomain=abelian_group,
+            symbol="+",
+            algebraic_structure=abelian_group,
+        )
+        scalprod = Operation(
+            real_values,
+            abelian_group,
+            codomain=abelian_group,
+            symbol=" \cdot ",
+            algebraic_structure=vector_space,
+        )
         result_graph = plus(scalprod("r_0", "a_0"), scalprod("r_1", "a_1"))
         result = LatexWalker(traversal)(result_graph)
 
@@ -49,7 +61,7 @@ class TestLatexWalker_Graphics(unittest.TestCase):
         R = r"\mathbb{R}"
         A = r"\mathbb{A}"
 
-        forall = VariableBindingOperator(symbol=r"\forall")
+        forall = variable_binding_operator(symbol=r"\forall")
         plus = Operation(A, A, codomain=A, symbol="+", algebraic_structure=A)
         scalprod = Operation(R, A, codomain=A, symbol=" \cdot ", algebraic_structure=V)
         result_graph = forall(

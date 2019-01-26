@@ -1,1 +1,0 @@
-sphinx-apidoc -o . ..\src\mathematics\

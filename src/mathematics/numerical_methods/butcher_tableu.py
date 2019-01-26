@@ -1,9 +1,16 @@
+"""Hard coded tables for butcher tableus containg
+"a" butcher matrices
+"b" weights
+"c" abscissae
+
+http://homepage.math.uiowa.edu/~ljay/publications.html
+L.O. Jay: Lobatto methods. [online, .pdf]. Encyclopedia of Applied and
+Computational Mathematics [.pdf], Numerical Analysis of Ordinary Differential
+Equations, Springer - The Language of Science, Bj\"orn Engquist (Ed.), 2015.
+"""
+
 from math import sqrt
 
-# http://homepage.math.uiowa.edu/~ljay/publications.html
-# L.O. Jay: Lobatto methods. [online, .pdf]. Encyclopedia of Applied and
-# Computational Mathematics [.pdf], Numerical Analysis of Ordinary Differential
-#  Equations, Springer - The Language of Science, Bj\"orn Engquist (Ed.), 2015.
 BUTCHER_TABLEU = {
     "lobatto_iiia": {
         "butcher_matrix": {

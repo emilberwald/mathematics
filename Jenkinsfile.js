@@ -1,83 +1,136 @@
-void addUsedDependencies() {
-  sh label: 'Add used dependencies', script: '\
-#!/bin/bash -x                                                          \n\
-source "${WORKSPACE}/venv/bin/activate";                                \n\
-python3 -m pip -V | tee -a "${WORKSPACE}/requirements.txt";             \n\
-python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt"'
+String inBash() { return '#!/bin/bash -x\n'; }
+String inPythonVenv() { return 'source "${WORKSPACE}/venv/bin/activate";'; }
+void addUsedDependencies(boolean init = false) {
+    if (init) {
+        sh label: 'Add used dependencies', script: [
+            inBash(), inPythonVenv(),
+            'python3 -m pip -V | tee "${WORKSPACE}/requirements.txt";',
+            'python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt";'
+        ].join('\n')
+    } else {
+        sh label: 'Add used dependencies', script: [
+            inBash(), inPythonVenv(),
+            'python3 -m pip -V | tee -a "${WORKSPACE}/requirements.txt";',
+            'python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt";'
+        ].join('\n')
+    }
 }
 pipeline {
-  agent any
-  stages {
-    stage('Setup') {
-      steps {
-        sh label: "Uninstall python modules...", script: '\
-#!/bin/bash -x                                                          \n\
-pip3 uninstall -y -r <(pip3 freeze);                                    \n\
-python3 -m pip uninstall -y -r <(python3 -m pip freeze);'
-        sh label: 'Create python virtual environment', script: '\
-#!/bin/bash -x                                                          \n\
-python3 -m venv --clear --without-pip "${WORKSPACE}/venv";              \n\
-source "${WORKSPACE}/venv/bin/activate";                                \n\
-python3 -m ensurepip --upgrade;                                         \n\
-python3 -m pip install -U pip;                                          \n\
-if [ ! -f "${WORKSPACE}/requirements.txt" ];                            \n\
-then                                                                    \n\
-(python3 -m pip -V > "${WORKSPACE}/requirements.txt";                   \n\
-python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt");        \n\
-fi'
-      }
-    }
-    stage('Test') {
-      steps {
-        script {
-          sh label: 'Install dependencies', script: '\
-#!/bin/bash -x                                                          \n\
-source "${WORKSPACE}/venv/bin/activate";                                \n\
-python3 -m pip install -r ${WORKSPACE}/mathematics/requirements.txt'
-          addUsedDependencies();
-          try {
-            timeout(time: 60, unit: 'SECONDS') {
-              sh label: 'Test', script: '\
-#!/bin/bash -x                                                                                                                                                                                          \n\
-source "${WORKSPACE}/venv/bin/activate";                                                                                                                                                                \n\
-python3 -m pytest --cov-report xml:${WORKSPACE}/cov.xml --cov=mathematics --ignore="${WORKSPACE}/mathematics/src/mathematics/tools/presentation/test_graphical.py" --junitxml=${WORKSPACE}/junit.xml'
+    agent any
+    stages {
+        stage('Setup') {
+            steps{
+                sh label: "Uninstall python modules...", script : [
+                    inBash(), 'pip3 uninstall -y -r <(pip3 freeze);',
+                    'python3 -m pip uninstall -y -r <(python3 -m pip freeze);'
+                ].join('\n')
+                sh label: "Create python virtual environment...", script: [
+                    inBash(), 'python3 -m venv --clear --without-pip "${WORKSPACE}/venv";'
+                ].join('\n')
+                sh label: "Install pip in virtual environment...", script: [
+                    inBash(), inPythonVenv(), 'python3 -m ensurepip --upgrade;',
+                    'python3 -m pip install -U pip;'
+                ].join('\n')
             }
-          } catch (Exception e) {
-            echo e.toString()
-          }
-          addUsedDependencies();
+            post{
+                always { addUsedDependencies(true) }
+            }
         }
-        cobertura autoUpdateHealth: false, autoUpdateStability: false,
-            coberturaReportFile: 'cov.xml',
-            conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false,
-            failUnstable: false, lineCoverageTargets: '80, 0, 0',
-            maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0',
-            onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
-      }
-    }
-    stage('Analyze') {
-      steps {
-        sh label: 'Install dependencies', script: '\
-#!/bin/bash -x                              \n\
-source "${WORKSPACE}/venv/bin/activate";    \n\
-python3 -m pip install pylint'
-        dir('mathematics/src') {
-          sh label: 'Pylint', script: '\
-#!/bin/bash -x                                                                                                                      \n\
-source "${WORKSPACE}/venv/bin/activate";                                                                                            \n\
-python3 -m pylint --msg-template=\'{abspath}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
+        stage('Test-Setup') {
+            steps {
+                sh label: 'Install dependencies', script: [
+                    inBash(), inPythonVenv(),
+                    'python3 -m pip install -r ${WORKSPACE}/mathematics/requirements.txt'
+                ].join('\n');
+            }
         }
-        recordIssues(tools: [ pyLint(pattern: 'pylint.log') ])
-        addUsedDependencies();
-      }
+        stage('Test') {
+            steps {
+                script {
+                    try {
+                        timeout(time: 60, unit: 'SECONDS') {
+                            sh label: 'Test', script: [
+                                inBash(), inPythonVenv(),
+                                'python3 -m pytest --cov-report xml:${WORKSPACE}/cov.xml --cov=mathematics --ignore="${WORKSPACE}/mathematics/src/mathematics/tools/presentation/test_graphical.py" --junitxml=${WORKSPACE}/junit.xml'
+                            ].join('\n');
+                        }
+                    } catch (Exception e) {
+                        echo e.toString()
+                    }
+                }
+            }
+            post {
+                always {
+                    addUsedDependencies();
+                    cobertura autoUpdateHealth: false, autoUpdateStability: false,
+                        coberturaReportFile: 'cov.xml',
+                            conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false,
+                                failUnstable: false, lineCoverageTargets: '80, 0, 0',
+                                    maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0',
+                                        onlyStable: false, sourceEncoding: 'ASCII',
+                                            zoomCoverageChart: false
+                }
+            }
+        }
+        stage('Analyze-Setup') {
+            steps {
+                sh label: 'Install dependencies', script: [
+                    inBash(), inPythonVenv(), 'python3 -m pip install pylint'
+                ].join('\n');
+            }
+        }
+        stage('Analyze') {
+            steps {
+                dir('mathematics/src') {
+                    sh label: 'Pylint', script: [
+                        inBash(), inPythonVenv(),
+                        'python3 -m pylint --msg-template=\'{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
+                    ].join('\n')
+                }
+            }
+            post {
+                always {
+                    addUsedDependencies();
+                    recordIssues(tools: [pyLint(pattern: 'pylint.log')])
+                }
+            }
+        }
+        stage('Documentation') {
+            environment{
+                AUTHOR = "Emil Berwald"
+                VERSION = "0.0.0"
+                SPHINX_APIDOC_OPTIONS = "members,undoc-members,private-members,special-members,show-inheritance"
+            }
+            steps {
+                sh label: 'Install sphinx', script: [
+                    inBash(), inPythonVenv(), 'python3 -m pip install -U sphinx'
+                ].join('\n');
+                sh label: 'Run sphinx api-docs', script: [
+                    inBash(),
+                    inPythonVenv(),
+                    'sphinx-apidoc --full -a -H ${JOB_NAME} -A "${AUTHOR}" -V "${VERSION}" -R "${VERSION}.${BUILD_NUMBER}" -o "${WORKSPACE}/mathematics/docs" "${WORKSPACE}/mathematics/src/";'
+                ].join('\n');
+                dir('mathematics/docs') {
+                    sh label: 'Run sphinx', script: [
+                        inBash(),
+                        inPythonVenv(),
+                        'make html;'].join('\n');
+                }
+            }
+            post{
+                always{
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'mathematics/docs/_build/html/', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+                }
+            }
+        }
     }
-    stage('Archive') {
-      steps {
-        junit allowEmptyResults: true, testResults: '*.xml'
-        archiveArtifacts artifacts: 'pylint.log', onlyIfSuccessful: false
-        archiveArtifacts artifacts: '*.xml', onlyIfSuccessful: false
-        archiveArtifacts artifacts: 'requirements.txt', onlyIfSuccessful: false
-      }
+    post {
+        always {
+            junit allowEmptyResults: true, testResults: '*.xml'
+            archiveArtifacts artifacts: 'docs/*.*', onlyIfSuccessful: false
+            archiveArtifacts artifacts: 'pylint.log', onlyIfSuccessful: false
+            archiveArtifacts artifacts: '*.xml', onlyIfSuccessful: false
+            archiveArtifacts artifacts: 'requirements.txt', onlyIfSuccessful: false
+        }
     }
-  }
 }

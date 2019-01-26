@@ -132,7 +132,7 @@ class TestRungeKutta(unittest.TestCase):
         for constant in constants:
 
             def get_function(coefficient):
-                def function(_, dependent_variable):
+                def function(_independent_variable, dependent_variable):
                     return coefficient * dependent_variable
 
                 return function

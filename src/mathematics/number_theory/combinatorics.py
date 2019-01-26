@@ -18,9 +18,10 @@ def canonical_order(cycle):
 
 
 def permutation_to_cycles(permutation):
-    """
-	:param permutation: permutation in 'one line notation' (https://en.wikipedia.org/wiki/Permutation#One-line_notation),
-                        e.g. if (0,1,2) -> (2,1,0) under the permutation then the permutation is (2,1,0)
+    r"""
+	:param permutation: permutation in 'one line notation'
+                        (see https://en.wikipedia.org/wiki/Permutation#One-line_notation),
+                        e.g. if permutation(0,1,2) -> (2,1,0) then ``permutation`` is (2,1,0)
 
     :return:            returns the decomposition into disjoint cycles (as a set of tuples).
                         https://en.wikipedia.org/wiki/Iterated_function#Definition
@@ -28,16 +29,18 @@ def permutation_to_cycles(permutation):
                         Iterate n+1:                f^{n+1}(x) = f(f^{n}(x))
                         Periodic orbit:             f^{n+m}(x) = f^{n}(x)
                             Periodic point: x
-                            Smallest value m for a given periodic point x is called the period of the orbit.
+                            Smallest ``m`` for periodic point ``x`` is the ``period of the orbit``.
                         https://en.wikipedia.org/wiki/Cycle_detection
-                        Here we learn that in general for function iterates over a finite set there might be a starting subsequence that is not
-                        repeated and that there will be an periodic orbit (repeating sequence, cycle, loop, ...).
+                        Function iterates over a finite set might have a starting subsequence that
+                        is not repeated, but will always have a periodic orbit (repeating sequence,
+                        cycle, loop, ...).
 
-                        A cycle is a periodic orbit, with the iterated function being the permutation. 
-                        Any element of the iterated sequence is a periodic point, so there is an equivalence class of cycles
-                        that represent the same iterated sequence modulo starting point.
-                        A canonical order is a way to choose representatives from these equivalence classes by choosing starting point
-                        in an ordered fashion.
+                        A cycle is a periodic orbit, with the permutation as the iterated function.
+                        Any element of the iterated sequence is a periodic point, so there is an
+                        equivalence class of cycles that represent the same iterated sequence
+                        modulo starting point.
+                        A canonical order is a way to choose representatives from these equivalence
+                        classes by choosing a starting point in an ordered fashion.
 	"""
 
     codomain = list(permutation)
@@ -85,19 +88,19 @@ def permutation_to_adjacent_transpositions(permutation):
     transpositions = permutation_to_transpositions(permutation)
     adjacent_transpositions = set()
     for transposition in transpositions:
-        k = min(transposition)
-        l = max(transposition)
-        # move k to l:
-        for s in range(k, l):
-            adjacent_transpositions.add(canonical_order((s, s + 1)))
-            # move l from l-1 to k:
-        for s in range(l - 1, k, -1):
-            adjacent_transpositions.add(canonical_order((s - 1, s)))
+        x_0 = min(transposition)
+        x_1 = max(transposition)
+        # move from x_0 to x_1 (...>x_0>....<x_1<...) -> (...x_0...<<,>x_1>...):
+        for position in range(x_0, x_1):
+            adjacent_transpositions.add(canonical_order((position, position + 1)))
+            # move from x_1-1 to x_0 (...x_0...<<,>x_1>...) -> (...<x_0<...,>x_1>...):
+        for position in range(x_1 - 1, x_0, -1):
+            adjacent_transpositions.add(canonical_order((position - 1, position)))
     return adjacent_transpositions
 
 
 def inversions_domainpair(permutation):
-    """:math:`\{(i,j) \colon i<j \land \pi(i)>\pi(j)\}`
+    r""":math:`\{(i,j) \colon i<j \land \pi(i)>\pi(j)\}`
 	NOTE: called pair of  places in wikipedia"""
     return {
         (i, j)
@@ -108,9 +111,9 @@ def inversions_domainpair(permutation):
 
 
 def inversions_codomainpair(permutation):
-    """ :math:`\{(\pi(i),\pi(j)) \colon i<j \land \pi(i)>\pi(j)\}`
-	NOTE: called pair of elements in wikipedia
-	"""
+    r""" :math:`\{(\pi(i),\pi(j)) \colon i<j \land \pi(i)>\pi(j)\}`
+    NOTE: called pair of elements in wikipedia
+    """
     return {
         (permutation[i], permutation[j])
         for i in range(0, len(permutation))
@@ -127,8 +130,8 @@ def inversion_vector(permutation):
 
 
 def left_inversion_count(permutation):
-    """l[i] is the number of elements where permutation[0:i] is greater than permutation[i] 
-	"""
+    """l[i] is the number of elements where permutation[0:i] is greater than permutation[i]
+    """
     return [
         sum(np.array(permutation[0:i]) > permutation[i])
         for i in range(0, len(permutation))
@@ -137,8 +140,8 @@ def left_inversion_count(permutation):
 
 def right_inversion_count(permutation):
     """Lehmer code
-	r[i] is the number of elements where permutation[i] is smaller than permutation[i+1:] 
-	"""
+    r[i] is the number of elements where permutation[i] is smaller than permutation[i+1:]
+    """
     return [
         sum(permutation[i] > np.array(permutation[i + 1 :]))
         for i in range(0, len(permutation))

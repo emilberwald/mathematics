@@ -1,40 +1,46 @@
-import networkx
-import multiprocessing
+"""
+This module aims to aid in writing mathematics, keeping track of the
+domain and codomain of operators
+"""
+
 import io
-import sympy.printing
-import sympy
-import base64
+import multiprocessing
 import tempfile
 import pathlib
-import pylatexenc.latex2text
+import base64
 import enum
 import subprocess
-import graphviz
 import itertools
+
+import networkx
+import sympy.printing
+import sympy
+import pylatexenc.latex2text
+import graphviz
 
 
 def underset(over, under):
-    return r" {{ \underset{{ {under} }}{{ {over} }} }} ".format(over=over, under=under)
+    return f" {{ \\underset{{ {under} }}{{ {over} }} }} "
 
 
 def overset(over, under):
-    return r" {{ \overset{{ {over} }}{{ {under} }} }} ".format(over=over, under=under)
+    return f" {{ \\overset{{ {over} }}{{ {under} }} }} "
 
 
 def underbrace(over, under):
-    return underset(r" \underbrace{{ {over} }} ".format(over=over), under)
+    return underset(f" \\underbrace{{ {over} }} ", under)
 
 
 def overbrace(over, under):
-    return r" {{ \overbrace{{ {over} }}{{ {under} }} }} ".format(over=over, under=under)
+    return f" {{ \\overbrace{{ {over} }}{{ {under} }} }} "
 
 
 def subscript(subscript):
-    return r" {{}}_{{ {subscript} }} ".format(subscript=subscript)
+    return f" {{}}_{{ {subscript} }}"
 
 
 def superscript(superscript):
-    return r" {{}}^{{ {superscript} }} ".format(superscript=superscript)
+    return f" {{}}^{{ {superscript} }}"
 
 
 class LatexNode:
@@ -114,32 +120,32 @@ class LatexNode:
 
     def as_url_png_tmp(self, cwd=False) -> pathlib.Path:
         if cwd:
-            f = tempfile.NamedTemporaryFile(
+            file = tempfile.NamedTemporaryFile(
                 suffix=".png", delete=False, dir=pathlib.Path.cwd()
             )
         else:
-            f = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-        f.close()
-        return self.as_url_png(f.name)
+            file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        file.close()
+        return self.as_url_png(file.name)
 
     def as_html_img_url_png_tmp(self, cwd=False) -> str:
         png_filename = self.as_url_png_tmp(cwd=cwd)
         return '<img src="' + png_filename + '"/>'
 
     def as_xelatex_pdf_url(self) -> pathlib.Path:
-        with tempfile.NamedTemporaryFile(suffix=".tex") as f:
-            f.write(self.latex)
-            f.close()
+        with tempfile.NamedTemporaryFile(suffix=".tex") as file:
+            file.write(self.latex)
+            file.close()
             subprocess.call(
                 [
                     "xelatex",
                     "--output-directory",
-                    f.parent,
+                    file.parent,
                     "-interaction=nonstopmode",
-                    f.name,
+                    file.name,
                 ]
             )
-            return pathlib.Path(f.name).joinpath(".pdf")
+            return pathlib.Path(file.name).joinpath(".pdf")
 
 
 def get_roots(graph):
@@ -156,13 +162,18 @@ class Operation:
             return Operation.identifier.value
 
     def __init__(
-        self, *domains, codomain=None, symbol=None, algebraic_structure=None, id=None
+        self,
+        *domains,
+        codomain=None,
+        symbol=None,
+        algebraic_structure=None,
+        identity=None,
     ):
         self.domains = domains
         self.codomain = codomain
         self.algebraic_structure = algebraic_structure
         self.symbol = symbol
-        self.id = id
+        self.identity = identity
 
     def __str__(self):
         def cartesian_product(*domains):
@@ -191,28 +202,28 @@ class Operation:
 
     def __call__(self, *args):
         graph = networkx.MultiDiGraph()
-        op = Operation(
+        operation = Operation(
             *self.domains,
             codomain=self.codomain,
             symbol=self.symbol,
             algebraic_structure=self.algebraic_structure,
-            id=Operation.get_fresh_identifier()
+            identity=Operation.get_fresh_identifier(),
         )
-        graph.add_node(op)
+        graph.add_node(operation)
         for arg in args:
             if isinstance(arg, networkx.Graph):
                 graph = networkx.algorithms.compose(graph, arg)
                 for root in get_roots(arg):
-                    graph.add_edge(op, root)
+                    graph.add_edge(operation, root)
             else:
                 graph.add_node(arg)
-                graph.add_edge(op, arg)
+                graph.add_edge(operation, arg)
         return graph
 
 
-def VariableBindingOperator(symbol=None, variable=r"\text{t}", formula=r"\text{f}"):
+def variable_binding_operator(symbol=None, variable=r"\text{t}", formula=r"\text{f}"):
     def bind_arguments(*bound):
-        # the domain is supposed to be a variable which is one kind of term, but v is so overused so used t instead.
+        # the domain is a variable which is a kind of term, but v is so overused so used t instead.
         domains = [variable] * len(bound[:-1])
         if isinstance(bound[-1], networkx.Graph):
             roots = get_roots(bound[-1])
@@ -237,13 +248,14 @@ class LatexWalker:
         self.traversal = traversal
 
     def __call__(
-        self, graph: networkx.MultiDiGraph, root_join="\quad ", fix_join="\qquad "
+        self, graph: networkx.MultiDiGraph, root_join=r"\quad ", fix_join=r"\qquad "
     ):
         def infix(*successors, root="", graph=networkx.MultiDiGraph()):
             if successors:
                 if isinstance(root, Operation) and root.codomain:
                     if root.domains and len(root.domains) != 2:
-                        # Special case (infix looks really bad when it does not have arity 2 and the domains look wrong)
+                        # Special case (infix looks really bad when it does not have arity 2 and
+                        # the domains look wrong)
                         over = (
                             r" \left( "
                             + LatexNode(root).as_default()
@@ -253,7 +265,7 @@ class LatexWalker:
                                     infix(
                                         *graph.successors(successor),
                                         root=successor,
-                                        graph=graph
+                                        graph=graph,
                                     )
                                     for successor in successors
                                 ]
@@ -269,7 +281,7 @@ class LatexWalker:
                                     infix(
                                         *graph.successors(successor),
                                         root=successor,
-                                        graph=graph
+                                        graph=graph,
                                     )
                                     for successor in successors
                                 ]
@@ -286,7 +298,7 @@ class LatexWalker:
                                 infix(
                                     *graph.succesors(successor),
                                     root=successor,
-                                    graph=graph
+                                    graph=graph,
                                 )
                                 for successor in successors
                             ]
@@ -305,7 +317,7 @@ class LatexWalker:
                                 *graph.successors(successor),
                                 root=successor,
                                 fix_join=fix_join,
-                                graph=graph
+                                graph=graph,
                             )
                             for successor in successors
                         ]
@@ -320,7 +332,7 @@ class LatexWalker:
                                 *graph.successors(successor),
                                 root=successor,
                                 fix_join=fix_join,
-                                graph=graph
+                                graph=graph,
                             )
                             for successor in successors
                         ]
@@ -337,7 +349,7 @@ class LatexWalker:
                                 *graph.successors(successor),
                                 root=successor,
                                 fix_join=fix_join,
-                                graph=graph
+                                graph=graph,
                             )
                             for successor in successors
                         ]
@@ -352,7 +364,7 @@ class LatexWalker:
                                 *graph.successors(successor),
                                 root=successor,
                                 fix_join=fix_join,
-                                graph=graph
+                                graph=graph,
                             )
                             for successor in successors
                         ]
@@ -380,7 +392,7 @@ class LatexWalker:
                             *graph.successors(root),
                             root=root,
                             fix_join=fix_join,
-                            graph=graph
+                            graph=graph,
                         )
                         for root in roots
                     ]
@@ -392,7 +404,7 @@ class LatexWalker:
                             *graph.successors(root),
                             root=root,
                             fix_join=fix_join,
-                            graph=graph
+                            graph=graph,
                         )
                         for root in roots
                     ]
@@ -409,19 +421,19 @@ class LatexWalker:
                 remove_us.append(image)
             graph = networkx.relabel.convert_node_labels_to_integers(graph)
             if LatexNode.folder == LatexNode.Folder.CWD:
-                f = tempfile.NamedTemporaryFile(
+                file = tempfile.NamedTemporaryFile(
                     suffix=".dot", delete=False, dir=pathlib.Path.cwd()
                 )
-                f.close()
-                networkx.drawing.nx_pydot.write_dot(graph, f.name)
-                result = pathlib.Path(graphviz.render("dot", "png", f.name))
-                remove_us.append(pathlib.Path(f.name))
+                file.close()
+                networkx.drawing.nx_pydot.write_dot(graph, file.name)
+                result = pathlib.Path(graphviz.render("dot", "png", file.name))
+                remove_us.append(pathlib.Path(file.name))
             elif LatexNode.folder == LatexNode.Folder.TMP:
-                f = tempfile.NamedTemporaryFile(suffix=".dot", delete=False)
-                f.close()
-                networkx.drawing.nx_pydot.write_dot(graph, f.name)
-                result = pathlib.Path(graphviz.render("dot", "png", f.name))
-                remove_us.append(pathlib.Path(f.name))
+                file = tempfile.NamedTemporaryFile(suffix=".dot", delete=False)
+                file.close()
+                networkx.drawing.nx_pydot.write_dot(graph, file.name)
+                result = pathlib.Path(graphviz.render("dot", "png", file.name))
+                remove_us.append(pathlib.Path(file.name))
             else:
                 return NotImplementedError()
             for remove_me in remove_us:

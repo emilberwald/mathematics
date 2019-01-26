@@ -1,9 +1,9 @@
 import unittest
+import itertools
 from parameterized import parameterized
 from sympy import symbols
-from mathematics.number_theory.combinatorics import *
 import numpy as np
-import itertools
+from mathematics.number_theory.combinatorics import *
 
 
 class TestPermutation(unittest.TestCase):
