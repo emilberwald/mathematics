@@ -69,6 +69,7 @@ pipeline {
                                     maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0',
                                         onlyStable: false, sourceEncoding: 'ASCII',
                                             zoomCoverageChart: false
+                    junit allowEmptyResults: true, testResults: '*.xml'
                 }
             }
         }
@@ -92,6 +93,7 @@ pipeline {
                 always {
                     addUsedDependencies();
                     recordIssues(tools: [pyLint(pattern: 'pylint.log')])
+                    archiveArtifacts artifacts: 'pylint.log', onlyIfSuccessful: false
                 }
             }
         }
@@ -120,16 +122,13 @@ pipeline {
             post{
                 always{
                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'mathematics/docs/_build/html/', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+                    archiveArtifacts artifacts: 'mathematics/docs/*.*', onlyIfSuccessful: false
                 }
             }
         }
     }
     post {
         always {
-            junit allowEmptyResults: true, testResults: '*.xml'
-            archiveArtifacts artifacts: 'docs/*.*', onlyIfSuccessful: false
-            archiveArtifacts artifacts: 'pylint.log', onlyIfSuccessful: false
-            archiveArtifacts artifacts: '*.xml', onlyIfSuccessful: false
             archiveArtifacts artifacts: 'requirements.txt', onlyIfSuccessful: false
         }
     }
