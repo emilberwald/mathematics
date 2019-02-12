@@ -1,10 +1,12 @@
 import unittest
+import pytest
 from sympy import symbols, Derivative
 import numpy as np
 from .calculus import *
 
 
 class TestCurl(unittest.TestCase):
+    @pytest.mark.timeout(1)
     def test_curl(self):
         tensor = np.array(symbols("A B C"))
         derivative = lambda tensor: np.array(

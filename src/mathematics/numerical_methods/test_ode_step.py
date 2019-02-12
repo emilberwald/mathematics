@@ -25,6 +25,7 @@ class TestLobattoHardcodedFulfillsConstraints(unittest.TestCase):
         ],
         testcase_func_name=custom_name_func,
     )
+    @pytest.mark.timeout(1)
     def test_hardcoded_fulfills_requirements(self, order, method):
         soft_0 = lambda lhs, cmp, rhs: (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
         butcher_matrix, weights, abscissae = Lobatto.hardcoded_butcher_tableu(
@@ -60,7 +61,7 @@ class TestLobattoCorrespondenceBetweenMethods(unittest.TestCase):
         ],
         testcase_func_name=custom_name_func,
     )
-    @pytest.mark.timeout(5)
+    @pytest.mark.timeout(1)
     def test_correspondence_between_methods(
         self, order, variant, first_method, second_method
     ):
@@ -114,6 +115,7 @@ class TestLobattoEstimateApproximatesHardcoded(unittest.TestCase):
         testcase_func_name=custom_name_func,
     )
     @pytest.mark.timeout(5)
+    @pytest.mark.timeout(1)
     def test_estimate_approximates_hardcoded(self, order, method):
         for actual, desired in zip(
             Lobatto.estimate_butcher_tableu(order, method),
@@ -123,6 +125,7 @@ class TestLobattoEstimateApproximatesHardcoded(unittest.TestCase):
 
 
 class TestRungeKutta(unittest.TestCase):
+    @pytest.mark.timeout(1)
     def test_implicit_runge_kutta(self):
         butcher_matrix, weights, abscissae = Lobatto.estimate_butcher_tableu(
             4, Lobatto.iiic
@@ -179,6 +182,7 @@ class TestRungeKutta(unittest.TestCase):
                      [time={independent_variable_evolution[-1]}, i={i}/{int(max_t/delta_t)}]",
                 )
 
+    @pytest.mark.timeout(1)
     def test_explicit_runge_kutta(self):
         # https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#Use
         """Ralston's method"""

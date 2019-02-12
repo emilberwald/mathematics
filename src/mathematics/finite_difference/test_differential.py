@@ -1,4 +1,5 @@
 import unittest
+import pytest
 import functools
 from parameterized import parameterized
 import numpy as np
@@ -19,12 +20,14 @@ def product(*args):
 
 
 class TestFlow(unittest.TestCase):
+    @pytest.mark.timeout(1)
     def test_flow(self):
         np.testing.assert_allclose([0.1], flow()(np.array(1))(0.1)(lambda t: t)(0))
         np.testing.assert_allclose([-0.1], flow()(np.array(-1))(0.1)(lambda t: t)(0))
 
 
 class TestFiniteForwardDifference(unittest.TestCase):
+    @pytest.mark.timeout(1)
     def test_finite_forward_difference(self):
         C, x = np.random.rand(2)
         actual = finite_forward_difference()(1)(lambda x: C * x)(x)(0.1)
@@ -45,6 +48,7 @@ class TestDifferentialWithScalarFunction(unittest.TestCase):
         ],
         testcase_func_name=custom_name_func,
     )
+    @pytest.mark.timeout(1)
     def test_scalar_derivative(self, function, known_derivative):
         x = np.random.rand(1)
         actual_derivative = directional_derivative(1)(function)(x)
@@ -54,6 +58,7 @@ class TestDifferentialWithScalarFunction(unittest.TestCase):
 
 class TestDifferentialWithVectorFunction(unittest.TestCase):
     @parameterized.expand([(product,)], testcase_func_name=custom_name_func)
+    @pytest.mark.timeout(1)
     def test_frechet_derivative_of_bilinear_map(self, bilinear_map):
         # https://math.stackexchange.com/questions/562820/what-is-the-second-frechet-derivative-of-a-bilinear-map
         # First derivative
@@ -68,6 +73,7 @@ class TestDifferentialWithVectorFunction(unittest.TestCase):
 
 class TestSecondDifferentialWithVectorFunction(unittest.TestCase):
     @parameterized.expand([(product,)], testcase_func_name=custom_name_func)
+    @pytest.mark.timeout(1)
     def test_second_frechet_derivative_of_bilinear_map(self, bilinear_map):
         # https://math.stackexchange.com/questions/562820/what-is-the-second-frechet-derivative-of-a-bilinear-map
         u, v = np.random.rand(2)

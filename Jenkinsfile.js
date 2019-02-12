@@ -4,14 +4,14 @@ void addUsedDependencies(boolean init = false) {
     if (init) {
         sh label: 'Add used dependencies', script: [
             inBash(), inPythonVenv(),
-            'python3 -m pip -V | tee "${WORKSPACE}/requirements.txt";',
-            'python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt";'
+            'python3 -m pip -V | tee "${WORKSPACE}/used_requirements.txt";',
+            'python3 -m pip freeze | tee -a "${WORKSPACE}/used_requirements.txt";'
         ].join('\n')
     } else {
         sh label: 'Add used dependencies', script: [
             inBash(), inPythonVenv(),
-            'python3 -m pip -V | tee -a "${WORKSPACE}/requirements.txt";',
-            'python3 -m pip freeze | tee -a "${WORKSPACE}/requirements.txt";'
+            'python3 -m pip -V | tee -a "${WORKSPACE}/used_requirements.txt";',
+            'python3 -m pip freeze | tee -a "${WORKSPACE}/used_requirements.txt";'
         ].join('\n')
     }
 }
@@ -20,10 +20,6 @@ pipeline {
     stages {
         stage('Setup') {
             steps{
-                sh label: "Uninstall python modules...", script : [
-                    inBash(), 'pip3 uninstall -y -r <(pip3 freeze);',
-                    'python3 -m pip uninstall -y -r <(python3 -m pip freeze);'
-                ].join('\n')
                 sh label: "Create python virtual environment...", script: [
                     inBash(), 'python3 -m venv --clear --without-pip "${WORKSPACE}/venv";'
                 ].join('\n')
@@ -40,7 +36,7 @@ pipeline {
             steps {
                 sh label: 'Install dependencies', script: [
                     inBash(), inPythonVenv(),
-                    'python3 -m pip install -r ${WORKSPACE}/mathematics/requirements.txt'
+                    'python3 -m pip install -r ${WORKSPACE}/requirements.txt'
                 ].join('\n');
             }
         }
@@ -51,7 +47,7 @@ pipeline {
                         timeout(time: 60, unit: 'SECONDS') {
                             sh label: 'Test', script: [
                                 inBash(), inPythonVenv(),
-                                'python3 -m pytest --cov-report xml:${WORKSPACE}/cov.xml --cov=mathematics --ignore="${WORKSPACE}/mathematics/src/mathematics/tools/presentation/test_graphical.py" --junitxml=${WORKSPACE}/junit.xml'
+                                'python3 -m pytest --cov-report xml:${WORKSPACE}/cov.xml --cov=mathematics --ignore="${WORKSPACE}/src/mathematics/tools/presentation/test_graphical.py" --junitxml=${WORKSPACE}/junit.xml'
                             ].join('\n');
                         }
                     } catch (Exception e) {
@@ -82,7 +78,7 @@ pipeline {
         }
         stage('Analyze') {
             steps {
-                dir('mathematics/src') {
+                dir('src') {
                     sh label: 'Pylint', script: [
                         inBash(), inPythonVenv(),
                         'python3 -m pylint --msg-template=\'{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
@@ -110,9 +106,16 @@ pipeline {
                 sh label: 'Run sphinx api-docs', script: [
                     inBash(),
                     inPythonVenv(),
-                    'sphinx-apidoc --full -a -H ${JOB_NAME} -A "${AUTHOR}" -V "${VERSION}" -R "${VERSION}.${BUILD_NUMBER}" -o "${WORKSPACE}/mathematics/docs" "${WORKSPACE}/mathematics/src/";'
+                    'sphinx-apidoc --full -a -H ${JOB_NAME} -A "${AUTHOR}" -V "${VERSION}" -R "${VERSION}.${BUILD_NUMBER}" -o "${WORKSPACE}/docs" "${WORKSPACE}/src/";'
                 ].join('\n');
-                dir('mathematics/docs') {
+                sh label: "Add mathjax to conf.py", script: [
+                    inBash(),
+                    ['echo', "'\nextensions.append(\"sphinx.ext.mathjax\")'", '>>"${WORKSPACE}/docs/conf.py";'].join(' '),
+                    ['echo', "'\nmathjax_path=\"MathJax/MathJax.js?config=TeX-MML-AM_CHTML\"'", '>>"${WORKSPACE}/docs/conf.py";'].join(' '),
+                    'mkdir -p \"${WORKSPACE}/docs/_static\";'
+                ].join('\n')
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'docs/_static/MathJax'], [$class: 'CloneOption', noTags: true, reference: '', shallow: true]], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/mathjax/MathJax.git']]])
+                dir('docs') {
                     sh label: 'Run sphinx', script: [
                         inBash(),
                         inPythonVenv(),
@@ -121,15 +124,15 @@ pipeline {
             }
             post{
                 always{
-                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'mathematics/docs/_build/html/', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                    archiveArtifacts artifacts: 'mathematics/docs/*.*', onlyIfSuccessful: false
+                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'docs/_build/html/', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+                    archiveArtifacts artifacts: 'docs/*.*', onlyIfSuccessful: false
                 }
             }
         }
     }
     post {
         always {
-            archiveArtifacts artifacts: 'requirements.txt', onlyIfSuccessful: false
+            archiveArtifacts artifacts: 'used_requirements.txt', onlyIfSuccessful: false
         }
     }
 }

@@ -1,4 +1,5 @@
 import unittest
+import pytest
 import itertools
 from parameterized import parameterized
 from sympy import symbols
@@ -7,6 +8,7 @@ from mathematics.number_theory.combinatorics import *
 
 
 class TestPermutation(unittest.TestCase):
+    @pytest.mark.timeout(1)
     def test_equivalence_of_parity_methods(self):
         permutation = np.random.permutation(range(0, 10))
         parities = [parity(permutation, method) for method in list(ParityMethod)]
@@ -19,6 +21,7 @@ class TestPermutation(unittest.TestCase):
             for permutation, desired in zip([range(0, 10), [3, 4, 5, 2, 1]], [1, -1])
         ]
     )
+    @pytest.mark.timeout(1)
     def test_parity_methods(self, method, permutation, desired):
         self.assertEqual(parity(permutation, method), desired)
 
@@ -50,6 +53,7 @@ class TestPermutation(unittest.TestCase):
             ([4, 3, 2, 1], [3, 2, 1, 0]),
         ]
     )  # https://en.wikipedia.org/wiki/Inversion_(discrete_mathematics)
+    @pytest.mark.timeout(1)
     def test_inversion_vector(self, permutation, desired):
         self.assertEqual(
             inversion_vector(permutation),
@@ -85,6 +89,7 @@ class TestPermutation(unittest.TestCase):
             ([4, 3, 2, 1], [0, 1, 2, 3]),
         ]
     )  # https://en.wikipedia.org/wiki/Inversion_(discrete_mathematics)
+    @pytest.mark.timeout(1)
     def test_left_inversion_count(self, permutation, desired):
         self.assertEqual(
             left_inversion_count(permutation),
@@ -120,6 +125,7 @@ class TestPermutation(unittest.TestCase):
             ([4, 3, 2, 1], [3, 2, 1, 0]),
         ]
     )  # https://en.wikipedia.org/wiki/Inversion_(discrete_mathematics)
+    @pytest.mark.timeout(1)
     def test_right_inversion_count(self, permutation, desired):
         self.assertEqual(
             right_inversion_count(permutation),
@@ -137,6 +143,7 @@ class TestPermutation(unittest.TestCase):
             [[7, 13, 4, 5]],
         )
     )
+    @pytest.mark.timeout(1)
     def test_nontcontiguous_sequence_raises_exception(self, method, not_permutation):
         self.assertRaises(IndexError, lambda: method(not_permutation))
 
@@ -147,6 +154,7 @@ class TestPermutation(unittest.TestCase):
             ([4, 5, 7, 6, 8, 2, 1, 3], {(1, 4, 6, 2, 5, 8, 3, 7)}),
         ]
     )
+    @pytest.mark.timeout(1)
     def test_permutation_to_cycle(self, permutation, desired):
         # assumes canonical order with min first is used
         actual = permutation_to_cycles(permutation)
@@ -164,6 +172,7 @@ class TestPermutation(unittest.TestCase):
             ([2, 1, 4, 3], {(1, 2), (3, 4)}),
         ]
     )
+    @pytest.mark.timeout(1)
     def test_permutation_to_transpositions(self, permutation, desired):
         # assumes canonical order with min first is used
         actual = permutation_to_transpositions(permutation)
