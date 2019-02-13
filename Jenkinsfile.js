@@ -81,7 +81,7 @@ pipeline {
                 dir('src') {
                     sh label: 'Pylint', script: [
                         inBash(), inPythonVenv(),
-                        'python3 -m pylint --msg-template=\'{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
+                        'python3 -m pylint --msg-template=\'{abspath}:{line}: [{msg_id}, {obj}] {msg} ({symbol})\' mathematics | tee ${WORKSPACE}/pylint.log'
                     ].join('\n')
                 }
             }
