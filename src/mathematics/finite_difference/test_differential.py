@@ -57,9 +57,7 @@ class TestDifferentialWithScalarFunction(unittest.TestCase):
 
 
 class TestDifferentialWithVectorFunction(unittest.TestCase):
-    @parameterized.expand(
-        [(lambda t: np.dot(t[0], t[1]),)], name_func=custom_name_func
-    )
+    @parameterized.expand([(lambda t: np.dot(t[0], t[1]),)], name_func=custom_name_func)
     @pytest.mark.timeout(1)
     def test_frechet_derivative_of_bilinear_map(self, bilinear_map):
         # https://math.stackexchange.com/questions/562820/what-is-the-second-frechet-derivative-of-a-bilinear-map
@@ -85,7 +83,7 @@ class TestSecondDifferentialWithVectorFunction(unittest.TestCase):
         [
             (order, ordo_constant)
             for order in (1, 2)
-            for ordo_constant in (10 ** exponent for exponent in range(-5,5+1))
+            for ordo_constant in (10 ** exponent for exponent in range(-5, 5 + 1))
         ],
         name_func=custom_name_func,
     )

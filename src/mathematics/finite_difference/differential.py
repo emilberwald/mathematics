@@ -32,7 +32,8 @@ def dt_heuristic(ordo_constant):
     """
     return lambda direction: lambda f: lambda application_point: lambda derivative_order, approximation_order: max(
         [
-            ordo_constant*(np.spacing(fi) ** (1.0 / (derivative_order + approximation_order)))
+            ordo_constant
+            * (np.spacing(fi) ** (1.0 / (derivative_order + approximation_order)))
             for fi in np.ravel(
                 flow()(direction)(0)(f)(application_point)
             )  # np.ravel for the corner case that fi is a float
