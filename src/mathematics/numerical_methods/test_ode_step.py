@@ -23,7 +23,7 @@ class TestLobattoHardcodedFulfillsConstraints(unittest.TestCase):
             *[(order, method) for order in (2, 3, 4, 5) for method in (Lobatto.iiic,)],
             *[(order, method) for order in (2, 3) for method in (Lobatto.iiicstar,)],
         ],
-        testcase_func_name=custom_name_func,
+        name_func=custom_name_func,
     )
     @pytest.mark.timeout(1)
     def test_hardcoded_fulfills_requirements(self, order, method):
@@ -59,7 +59,7 @@ class TestLobattoCorrespondenceBetweenMethods(unittest.TestCase):
                 )
             ],
         ],
-        testcase_func_name=custom_name_func,
+        name_func=custom_name_func,
     )
     @pytest.mark.timeout(1)
     def test_correspondence_between_methods(
@@ -112,7 +112,7 @@ class TestLobattoEstimateApproximatesHardcoded(unittest.TestCase):
             *[(order, method) for order in (2, 3, 4, 5) for method in (Lobatto.iiic,)],
             *[(order, method) for order in (2, 3) for method in (Lobatto.iiicstar,)],
         ],
-        testcase_func_name=custom_name_func,
+        name_func=custom_name_func,
     )
     @pytest.mark.timeout(5)
     @pytest.mark.timeout(1)
