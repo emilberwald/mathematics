@@ -18,7 +18,9 @@ class TestLobattoHardcodedFulfillsConstraints:
     )
     @timeout(seconds=1.0)
     def test_hardcoded_fulfills_requirements(self, order, method):
-        soft_0 = lambda lhs, cmp, rhs: (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
+        def soft_0(lhs, cmp, rhs):
+            return (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
+
         butcher_matrix, weights, abscissae = Lobatto.hardcoded_butcher_tableu(
             order, method
         )

@@ -259,6 +259,58 @@ class Lobatto:
         return system
 
     @classmethod
+    def __try_to_minimize(
+        cls, system_to_minimize, butcher_matrix, weights, abscissae, epsilon=1e-1
+    ):
+        sol = sp.optimize.minimize(
+            system_to_minimize, cls.pack(butcher_matrix, weights, abscissae)
+        )
+        if sol.success:
+            cost = system_to_minimize(sol.x)
+            butcher_matrix, weights, abscissae = cls.unpack(sol.x)
+            return butcher_matrix, weights, abscissae, cost, sol.success
+        else:
+            if "x" in sol:
+                cost = system_to_minimize(sol.x)
+                if cost < epsilon:
+                    butcher_matrix, weights, abscissae = cls.unpack(sol.x)
+                    return butcher_matrix, weights, abscissae, cost, sol.success
+
+    @classmethod
+    def __try_to_find_kernel(
+        cls, system_to_find_kernel, butcher_matrix, weights, abscissae
+    ):
+        # Need to choose a solver that allows for the output to be different than the input
+        sol = sp.optimize.root(
+            system_to_find_kernel,
+            cls.pack(butcher_matrix, weights, abscissae),
+            method="lm",
+        )
+        if sol.success:
+            residual = system_to_find_kernel(sol.x)
+            butcher_matrix, weights, abscissae = cls.unpack(sol.x)
+            return butcher_matrix, weights, abscissae, residual, sol.success
+
+    @classmethod
+    def __check_converged(cls, system_requirements, saved, latest):
+        butcher_matrix, weights, abscissae = latest
+        reqs = system_requirements(cls.pack(butcher_matrix, weights, abscissae))
+        if all(
+            [np.allclose(savedi, latesti) for savedi, latesti in zip(saved, latest)]
+        ):
+            abscissae[0] = 0.0
+            abscissae[-1] = 1.0
+            return (
+                (butcher_matrix.tolist(), weights.tolist(), abscissae.tolist()),
+                True,
+                sum(reqs),
+            )
+        else:
+            abscissae[0] = 0.0
+            abscissae[-1] = 1.0
+            return (butcher_matrix, weights, abscissae), False, sum(reqs)
+
+    @classmethod
     def estimate_butcher_tableu(
         cls, nof_dimensions, specific_constraints=None, initial_guess=None
     ):
@@ -276,87 +328,58 @@ class Lobatto:
         else:
             butcher_matrix, weights, abscissae = initial_guess
 
-        soft_min = lambda lhs, cmp, rhs: (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
-        constraints_min = cls.create_constraint_system(specific_constraints, soft_min)
-        system_to_minimize = lambda x: np.linalg.norm(constraints_min(x))
+        def soft_min(lhs, cmp, rhs):
+            return (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
 
-        soft_0 = lambda lhs, cmp, rhs: (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
+        constraints_min = cls.create_constraint_system(specific_constraints, soft_min)
+
+        def system_to_minimize(x):
+            return np.linalg.norm(constraints_min(x))
+
+        def soft_0(lhs, cmp, rhs):
+            return (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
+
         system_to_find_kernel = cls.create_constraint_system(
             specific_constraints, soft_0
         )
 
         system_requirements = cls.create_constraint_system(specific_constraints)
 
-        def try_to_minimize(butcher_matrix, weights, abscissae, epsilon=1e-1):
-            sol = sp.optimize.minimize(
-                system_to_minimize, cls.pack(butcher_matrix, weights, abscissae)
-            )
-            if sol.success:
-                cost = system_to_minimize(sol.x)
-                butcher_matrix, weights, abscissae = cls.unpack(sol.x)
-                return butcher_matrix, weights, abscissae, cost, sol.success
-            else:
-                if "x" in sol:
-                    cost = system_to_minimize(sol.x)
-                    if cost < epsilon:
-                        butcher_matrix, weights, abscissae = cls.unpack(sol.x)
-                        return butcher_matrix, weights, abscissae, cost, sol.success
-
-        def try_to_find_kernel(butcher_matrix, weights, abscissae):
-            # Need to choose a solver that allows for the output to be different than the input
-            sol = sp.optimize.root(
-                system_to_find_kernel,
-                cls.pack(butcher_matrix, weights, abscissae),
-                method="lm",
-            )
-            if sol.success:
-                residual = system_to_find_kernel(sol.x)
-                butcher_matrix, weights, abscissae = cls.unpack(sol.x)
-                return butcher_matrix, weights, abscissae, residual, sol.success
-
-        def check_converged(saved, latest):
-            butcher_matrix, weights, abscissae = latest
-            reqs = system_requirements(cls.pack(butcher_matrix, weights, abscissae))
-            if all(
-                [np.allclose(savedi, latesti) for savedi, latesti in zip(saved, latest)]
-            ):
-                abscissae[0] = 0.0
-                abscissae[-1] = 1.0
-                return (
-                    (butcher_matrix.tolist(), weights.tolist(), abscissae.tolist()),
-                    True,
-                    sum(reqs),
-                )
-            else:
-                abscissae[0] = 0.0
-                abscissae[-1] = 1.0
-                return (butcher_matrix, weights, abscissae), False, sum(reqs)
-
         saved_0 = (butcher_matrix, weights, abscissae)
         saved_min = (butcher_matrix, weights, abscissae)
         while True:
             converged_0 = None
             converged_min = None
+            quality_0 = None
+            quality_min = None
             for _ in range(2):
-                result_0 = try_to_find_kernel(butcher_matrix, weights, abscissae)
+                result_0 = cls.__try_to_find_kernel(
+                    system_to_find_kernel, butcher_matrix, weights, abscissae
+                )
                 if result_0:
                     butcher_matrix, weights, abscissae, _, _ = result_0
-                    saved_0, converged_0, quality_0 = check_converged(
-                        saved_0, (butcher_matrix, weights, abscissae)
+                    saved_0, converged_0, quality_0 = cls.__check_converged(
+                        system_requirements,
+                        saved_0,
+                        (butcher_matrix, weights, abscissae),
                     )
                     if converged_0:
                         return saved_0
 
             for _ in range(2):
-                result_min = try_to_minimize(butcher_matrix, weights, abscissae)
+                result_min = cls.__try_to_minimize(
+                    system_to_minimize, butcher_matrix, weights, abscissae
+                )
                 if result_min:
                     butcher_matrix, weights, abscissae, _, _ = result_min
-                    saved_min, converged_min, quality_min = check_converged(
-                        saved_min, (butcher_matrix, weights, abscissae)
+                    saved_min, converged_min, quality_min = cls.__check_converged(
+                        system_requirements,
+                        saved_min,
+                        (butcher_matrix, weights, abscissae),
                     )
                     if converged_min:
                         return saved_min
-            if converged_0 and converged_min:
+            if converged_0 and converged_min and quality_0 and quality_min:
                 return saved_0 if quality_0 < quality_min else saved_min
             else:
                 return None

@@ -14,7 +14,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_collection_modifyitems(session, config, items):
+def pytest_collection_modifyitems(config, items):
     slow_toggle = bool(config.getoption("--slow"))
     lock = RLock()
     with lock:

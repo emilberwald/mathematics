@@ -10,9 +10,10 @@ class TestCurl:
     @timeout(seconds=1.0)
     def test_curl(self):
         tensor = np.array(symbols("A B C"))
-        derivative = lambda tensor: np.array(
-            [Derivative(tensor, ei) for ei in symbols("x y z")]
-        )
+
+        def derivative(tensor):
+            return np.array([Derivative(tensor, ei) for ei in symbols("x y z")])
+
         metric_tensor = np.diag([1, 1, 1])
         curl_tensor = curl(derivative, metric_tensor, tensor)
         expected_curl_tensor = tensor  # TODO: Find out what the expected value is

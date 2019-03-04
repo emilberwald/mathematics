@@ -10,7 +10,7 @@ from ..testing import user_verdict, name_func
 # 		return QDialog.exec_(self)
 
 
-class TestLatexWalker_Text:
+class TestLatexWalkerText:
     @pytest.mark.parametrize(
         "traversal,presentation",
         [
@@ -49,7 +49,7 @@ class TestLatexWalker_Text:
         assert verdict
 
 
-class TestLatexWalker_Graphics:
+class TestLatexWalkerGraphics:
     @pytest.mark.parametrize(
         "traversal,presentation",
         [
@@ -63,7 +63,7 @@ class TestLatexWalker_Graphics:
         ids=name_func,
     )
     @pytest.mark.slow
-    def test_LatexWalker_image(self, traversal, presentation):
+    def test_latexwalker_image(self, traversal, presentation):
         V = r"\mathbb{V}"
         R = r"\mathbb{R}"
         A = r"\mathbb{A}"
