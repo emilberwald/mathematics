@@ -7,16 +7,21 @@ import pytest
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--slow", action="store_true", default=False, help="run slow tests"
+        "--slow",
+        action="store_true",
+        default=False,
+        help="only slow tests (only non-slow by default)",
     )
 
 
-def pytest_collection_modifyitems(config, items):
-    if config.getoption("--slow"):
-        # --slow given in cli: do not skip slow tests
-        return
+def pytest_collection_modifyitems(session, config, items):
+    slow_toggle = bool(config.getoption("--slow"))
     lock = RLock()
     with lock:
         for item in items:
-            if "slow" in item.keywords:
-                item.add_marker(pytest.mark.skip(reason="need --slow option to run"))
+            slow_present = "slow" in item.keywords
+            if slow_toggle != slow_present:
+                item.add_marker(
+                    pytest.mark.skip(reason=f"[--slow {slow_toggle}, {slow_present}]")
+                )
+    return

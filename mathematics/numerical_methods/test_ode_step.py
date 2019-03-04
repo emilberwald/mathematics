@@ -1,19 +1,20 @@
-from parameterized import parameterized
+import pytest
 
 from mathematics.tools.decorators import timeout
-from mathematics.tools.testing import custom_name_func
+from mathematics.tools.testing import name_func
 from .ode_step import *
 
 
 class TestLobattoHardcodedFulfillsConstraints:
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order,method",
         [
             *[(order, method) for order in (2, 3, 4) for method in (Lobatto.iiia,)],
             *[(order, method) for order in (2, 3, 4) for method in (Lobatto.iiib,)],
             *[(order, method) for order in (2, 3, 4, 5) for method in (Lobatto.iiic,)],
             *[(order, method) for order in (2, 3) for method in (Lobatto.iiicstar,)],
         ],
-        name_func=custom_name_func,
+        ids=name_func,
     )
     @timeout(seconds=1.0)
     def test_hardcoded_fulfills_requirements(self, order, method):
@@ -28,7 +29,8 @@ class TestLobattoHardcodedFulfillsConstraints:
 
 
 class TestLobattoCorrespondenceBetweenMethods:
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order,variant,first_method,second_method",
         [
             *[
                 (order, variant, Lobatto.iiic, Lobatto.iiicstar)
@@ -49,11 +51,10 @@ class TestLobattoCorrespondenceBetweenMethods:
                 )
             ],
         ],
-        name_func=custom_name_func,
+        ids=name_func,
     )
     @timeout(seconds=1.0)
     # order 4, Lobatto.iiia Lobatto.iiib fails because it is too slow
-    @timeout(seconds=1.0)
     def test_correspondence_between_methods(
         self, order, variant, first_method, second_method
     ):
@@ -97,14 +98,15 @@ class TestLobattoCorrespondenceBetweenMethods:
 
 
 class TestLobattoEstimateApproximatesHardcoded:
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "order,method",
         [
             *[(order, method) for order in (2, 3, 4) for method in (Lobatto.iiia,)],
             *[(order, method) for order in (2, 3, 4) for method in (Lobatto.iiib,)],
             *[(order, method) for order in (2, 3, 4, 5) for method in (Lobatto.iiic,)],
             *[(order, method) for order in (2, 3) for method in (Lobatto.iiicstar,)],
         ],
-        name_func=custom_name_func,
+        ids=name_func,
     )
     @timeout(seconds=1.0)
     def test_estimate_approximates_hardcoded(self, order, method):

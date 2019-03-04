@@ -9,7 +9,6 @@ from PySide2.QtWidgets import (
     QDialogButtonBox,
     QVBoxLayout,
     QMessageBox,
-    QWidget,
 )
 
 
@@ -56,11 +55,11 @@ def gui_mediaverdict(title, media_file, return_list):
     webbrowser.open_new(media_file)
     _qapp = QApplication([])
     verdict = QMessageBox.question(
-        parent=QWidget(),
-        title=title,
-        text="Does it look nice?",
-        button0=QMessageBox.Yes | QMessageBox.No,
-        button1=QMessageBox.No,
+        None,
+        title,
+        "Does it look nice?",
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.Yes,
     )
     if verdict == QMessageBox.Yes:
         return_list.append(True)

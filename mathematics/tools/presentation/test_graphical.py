@@ -1,10 +1,9 @@
 import sys
 
 import pytest
-from parameterized import parameterized
 
 from .graphical import *
-from ..testing import user_verdict, custom_name_func
+from ..testing import user_verdict, name_func
 
 
 # 	def exec_(self):
@@ -12,13 +11,14 @@ from ..testing import user_verdict, custom_name_func
 
 
 class TestLatexWalker_Text:
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "traversal,presentation",
         [
             (traversal, presentation)
             for traversal in list(LatexWalker.Traversal)
             for presentation in (LatexNode.Presentation.UNICODE_APPROXIMATION,)
         ],
-        name_func=custom_name_func,
+        ids=name_func,
     )
     @pytest.mark.slow
     def test_LatexWalker_unicode(self, traversal, presentation):
@@ -37,7 +37,7 @@ class TestLatexWalker_Text:
             real_values,
             abelian_group,
             codomain=abelian_group,
-            symbol=" \cdot ",
+            symbol=r" \cdot ",
             algebraic_structure=vector_space,
         )
         result_graph = plus(scalprod("r_0", "a_0"), scalprod("r_1", "a_1"))
@@ -50,7 +50,8 @@ class TestLatexWalker_Text:
 
 
 class TestLatexWalker_Graphics:
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "traversal,presentation",
         [
             (traversal, presentation)
             for traversal in list(LatexWalker.Traversal)
@@ -59,7 +60,7 @@ class TestLatexWalker_Graphics:
                 LatexNode.Presentation.TEXT,
             )
         ],
-        func_name=custom_name_func,
+        ids=name_func,
     )
     @pytest.mark.slow
     def test_LatexWalker_image(self, traversal, presentation):
@@ -69,7 +70,7 @@ class TestLatexWalker_Graphics:
 
         forall = variable_binding_operator(symbol=r"\forall")
         plus = Operation(A, A, codomain=A, symbol="+", algebraic_structure=A)
-        scalprod = Operation(R, A, codomain=A, symbol=" \cdot ", algebraic_structure=V)
+        scalprod = Operation(R, A, codomain=A, symbol=r" \cdot ", algebraic_structure=V)
         result_graph = forall(
             "r", "a_0", "a_1", plus(scalprod("r", "a_0"), scalprod("r", "a_1"))
         )

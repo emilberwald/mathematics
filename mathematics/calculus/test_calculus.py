@@ -6,7 +6,7 @@ from .calculus import *
 
 
 class TestCurl:
-    @pytest.mark.skip(reason="TODO")
+    @pytest.mark.skip(reason="[TODO]")
     @timeout(seconds=1.0)
     def test_curl(self):
         tensor = np.array(symbols("A B C"))

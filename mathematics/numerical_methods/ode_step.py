@@ -2,7 +2,6 @@
 Functionality for stepping forward in dynamical systems.
 """
 
-import logging
 import math
 import operator
 
@@ -336,6 +335,8 @@ class Lobatto:
         saved_0 = (butcher_matrix, weights, abscissae)
         saved_min = (butcher_matrix, weights, abscissae)
         while True:
+            converged_0 = None
+            converged_min = None
             for _ in range(2):
                 result_0 = try_to_find_kernel(butcher_matrix, weights, abscissae)
                 if result_0:
@@ -355,11 +356,9 @@ class Lobatto:
                     )
                     if converged_min:
                         return saved_min
-            try:
-                if converged_0 and converged_min:
-                    return saved_0 if quality_0 < quality_min else saved_min
-            except UnboundLocalError as exc:
-                logging.error(exc)
+            if converged_0 and converged_min:
+                return saved_0 if quality_0 < quality_min else saved_min
+            else:
                 return None
 
     @classmethod
