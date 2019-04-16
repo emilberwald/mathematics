@@ -13,6 +13,10 @@ strategy:
     Python37:
       python.version: '3.7'
 
+variables:
+  AUTHOR: "Emil Berwald"
+  SPHINX_APIDOC_OPTIONS: "members,undoc-members,private-members,special-members,show-inheritance"
+
 steps:
 - task: UsePythonVersion@0
   inputs:
@@ -27,5 +31,37 @@ steps:
 - script: |
     pip install pytest pytest-azurepipelines
     pip install pytest-cov
-    pytest tests --junitxml=junit/test-results.xml --cov=mathematics --cov-report=xml --cov-report=html ignore=src/mathematics/tools/presentation/test_graphical.py
+    pytest tests --junitxml=junit/test-results.xml --cov=mathematics --cov-report=xml xml:coverage/cov.xml ignore=src/mathematics/tools/presentation/test_graphical.py
   displayName: 'pytest'
+
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: 'Cobertura'
+    summaryFileLocation: 'coverage/cov.xml'
+    reportDirectory: 'results'
+    failIfCoverageEmpty: true
+
+- script: |
+    pip install pylint
+    pylint --output-format=json --reports=y mathematics > pylint.json
+  displayName: 'pylint'
+
+- task: PublishPipelineArtifact@0
+  inputs:
+    artifactName: 'pylint'
+    targetPath: 'pylint.json'
+
+- script: |
+    pip install -U sphinx
+    sphinx-apidoc --full -a -H $TeamProject -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" "src"
+    echo extensions.append("sphinx.ext.mathjax") >> docs/conf.py
+    echo mathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML" >> docs/conf.py
+    mkdir docs/_static
+    git clone --depth 1 --branch master https://github.com/mathjax/MathJax.git docs/_static/MathJax
+    make html
+  displayName: 'sphinx'
+
+- task: PublishPipelineArtifact@0
+  inputs:
+    artifactName: 'docs'
+    targetPath: 'docs'
