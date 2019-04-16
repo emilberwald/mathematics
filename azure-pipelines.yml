@@ -48,11 +48,14 @@ jobs:
     matrix:
       Python37:
         python.version: '3.7'
+  variables:
+      AUTHOR: "Emil Berwald"
+      SPHINX_APIDOC_OPTIONS: "members,undoc-members,private-members,special-members,show-inheritance"
   steps:
   - template: azure-pipelines-dependencies.yml
   - script: |
       pip install --upgrade sphinx
-      sphinx-apidoc --full -a -H $TeamProject -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" "src"
+      sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" "src"
       echo 'extensions.append("sphinx.ext.mathjax")' >> docs/conf.py
       echo 'mathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML"' >> docs/conf.py
       mkdir docs/_static
@@ -64,3 +67,4 @@ jobs:
     inputs:
       artifactName: 'docs'
       targetPath: 'docs'
+
