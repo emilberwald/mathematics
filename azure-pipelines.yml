@@ -69,5 +69,5 @@ jobs:
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'docs'
-      targetPath: 'mathematics/docs'
+      targetPath: 'docs'
 
