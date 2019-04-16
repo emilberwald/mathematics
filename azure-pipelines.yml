@@ -17,23 +17,10 @@ jobs:
         python.version: '3.7'
   steps:
   - template: azure-pipelines-dependencies.yml
-
   - script: |
-      pip install pytest pytest-azurepipelines
-      pip install pytest-cov
-      pytest tests --junitxml=junit/test-results.xml --cov=mathematics --cov-report=xml xml:coverage/cov.xml ignore=src/mathematics/tools/presentation/test_graphical.py
+        pip install pytest pytest-azurepipelines pytest-cov
+        python -m pytest tests/ --cov mathematics --cov-report html
     displayName: 'pytest'
-
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFiles: '**/test-*.xml'
-
-  - task: PublishCodeCoverageResults@1
-    inputs:
-      codeCoverageTool: 'Cobertura'
-      summaryFileLocation: 'coverage/cov.xml'
-      reportDirectory: 'results'
-      failIfCoverageEmpty: false
 
 - job: Linting
   pool:
@@ -46,7 +33,7 @@ jobs:
   - template: azure-pipelines-dependencies.yml
   - script: |
       pip install pylint
-      pylint --output-format=json --reports=y mathematics > pylint.json
+      python -m pylint --output-format=json --reports=y mathematics > pylint.json
     displayName: 'pylint'
 
   - task: PublishPipelineArtifact@0
@@ -64,10 +51,10 @@ jobs:
   steps:
   - template: azure-pipelines-dependencies.yml
   - script: |
-      pip install -U sphinx
+      pip install --upgrade sphinx
       sphinx-apidoc --full -a -H $TeamProject -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" "src"
-      echo extensions.append("sphinx.ext.mathjax") >> docs/conf.py
-      echo mathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML" >> docs/conf.py
+      echo 'extensions.append("sphinx.ext.mathjax")' >> docs/conf.py
+      echo 'mathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML"' >> docs/conf.py
       mkdir docs/_static
       git clone --depth 1 --branch master https://github.com/mathjax/MathJax.git docs/_static/MathJax
       make html
