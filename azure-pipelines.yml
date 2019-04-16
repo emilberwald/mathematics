@@ -35,8 +35,13 @@ jobs:
   - script: |
       ls -latr
       pip install pylint
-      python -m pylint --output-format=json --reports=y mathematics
+      python -m pylint --output-format=json --reports=y mathematics | tee pylint.json
     displayName: 'pylint'
+
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'pylint'
+      targetPath: 'pylint.json'
 
 - job: Documentation
   pool:
@@ -56,8 +61,8 @@ jobs:
         sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" "mathematics"
         echo 'extensions.append("sphinx.ext.mathjax")' >> docs/conf.py
         echo 'mathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML"' >> docs/conf.py
-        mkdir docs/_static
         git clone --depth 1 --branch master https://github.com/mathjax/MathJax.git docs/_static/MathJax
+        cd docs
         make html
     displayName: 'sphinx'
 
