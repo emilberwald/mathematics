@@ -3,65 +3,98 @@
 # Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
+name: $(TeamProject)_$(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 trigger:
-- master
+ - master
 
-pool:
-  vmImage: 'Ubuntu-16.04'
-strategy:
-  matrix:
-    Python37:
-      python.version: '3.7'
+jobs:
+- job: Dependencies
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  strategy:
+    matrix:
+      Python37:
+        python.version: '3.7'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+    displayName: 'Use Python $(python.version)'
 
-variables:
-  AUTHOR: "Emil Berwald"
-  SPHINX_APIDOC_OPTIONS: "members,undoc-members,private-members,special-members,show-inheritance"
+  - script: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+    displayName: 'Install dependencies'
 
-steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '$(python.version)'
-  displayName: 'Use Python $(python.version)'
 
-- script: |
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt
-  displayName: 'Install dependencies'
+- job: Testing
+  dependsOn: Dependencies
+  condition: succeeded()
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  strategy:
+    matrix:
+      Python37:
+        python.version: '3.7'
+  steps:
+    - script: |
+        pip install pytest pytest-azurepipelines
+        pip install pytest-cov
+        pytest tests --junitxml=junit/test-results.xml --cov=mathematics --cov-report=xml xml:coverage/cov.xml ignore=src/mathematics/tools/presentation/test_graphical.py
+      displayName: 'pytest'
 
-- script: |
-    pip install pytest pytest-azurepipelines
-    pip install pytest-cov
-    pytest tests --junitxml=junit/test-results.xml --cov=mathematics --cov-report=xml xml:coverage/cov.xml ignore=src/mathematics/tools/presentation/test_graphical.py
-  displayName: 'pytest'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '**/test-*.xml'
 
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: 'Cobertura'
-    summaryFileLocation: 'coverage/cov.xml'
-    reportDirectory: 'results'
-    failIfCoverageEmpty: true
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: 'coverage/cov.xml'
+        reportDirectory: 'results'
+        failIfCoverageEmpty: false
 
-- script: |
-    pip install pylint
-    pylint --output-format=json --reports=y mathematics > pylint.json
-  displayName: 'pylint'
+- job: Linting
+  dependsOn: Dependencies
+  condition: succeeded()
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  strategy:
+    matrix:
+      Python37:
+        python.version: '3.7'
+  steps:
+    - script: |
+        pip install pylint
+        pylint --output-format=json --reports=y mathematics > pylint.json
+      displayName: 'pylint'
 
-- task: PublishPipelineArtifact@0
-  inputs:
-    artifactName: 'pylint'
-    targetPath: 'pylint.json'
+    - task: PublishPipelineArtifact@0
+      inputs:
+        artifactName: 'pylint'
+        targetPath: 'pylint.json'
 
-- script: |
-    pip install -U sphinx
-    sphinx-apidoc --full -a -H $TeamProject -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" "src"
-    echo extensions.append("sphinx.ext.mathjax") >> docs/conf.py
-    echo mathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML" >> docs/conf.py
-    mkdir docs/_static
-    git clone --depth 1 --branch master https://github.com/mathjax/MathJax.git docs/_static/MathJax
-    make html
-  displayName: 'sphinx'
+- job: Documentation
+  dependsOn: Dependencies
+  condition: succeeded()
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  strategy:
+    matrix:
+      Python37:
+        python.version: '3.7'
+  steps:
+    - script: |
+        pip install -U sphinx
+        sphinx-apidoc --full -a -H $TeamProject -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" "src"
+        echo extensions.append("sphinx.ext.mathjax") >> docs/conf.py
+        echo mathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML" >> docs/conf.py
+        mkdir docs/_static
+        git clone --depth 1 --branch master https://github.com/mathjax/MathJax.git docs/_static/MathJax
+        make html
+      displayName: 'sphinx'
 
-- task: PublishPipelineArtifact@0
-  inputs:
-    artifactName: 'docs'
-    targetPath: 'docs'
+    - task: PublishPipelineArtifact@0
+      inputs:
+        artifactName: 'docs'
+        targetPath: 'docs'
