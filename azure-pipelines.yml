@@ -1,0 +1,83 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+name: $(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+trigger:
+ - master
+
+jobs:
+- job: Testing
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      Python37:
+        python.version: '3.7'
+  steps:
+  - template: azure-pipelines-dependencies.yml
+  - script: |
+        ls -latr
+        pip install pytest pytest-azurepipelines pytest-cov
+        python -m pytest mathematics --doctest-modules --junitxml=junit/test-mathematics.xml --cov=mathematics --cov-report=xml --cov-report=html
+    displayName: 'pytest'
+  - task: PublishCodeCoverageResults@1
+    inputs:
+      codeCoverageTool: Cobertura
+      summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+      reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFiles: '**/test-*.xml'
+      testRunTitle: 'Test results  (python:$(python.version))'
+- job: Linting
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      Python37:
+        python.version: '3.7'
+  steps:
+  - template: azure-pipelines-dependencies.yml
+  - script: |
+      ls -latr
+      pip install pylint
+      python -m pylint --output-format=json --reports=y mathematics | tee pylint.json
+    displayName: 'pylint'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'pylint'
+      targetPath: 'pylint.json'
+- job: Documentation
+  pool:
+    vmImage: 'ubuntu-latest'
+  strategy:
+    matrix:
+      Python37:
+        python.version: '3.7'
+  variables:
+      AUTHOR: "Emil Berwald"
+      SPHINX_APIDOC_OPTIONS: "members,undoc-members,private-members,special-members,show-inheritance"
+  steps:
+  - template: azure-pipelines-dependencies.yml
+  - script: |
+        ls -latr
+        pip install --upgrade sphinx
+        sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" .
+        echo -e '\nextensions.append("sphinx.ext.mathjax")' >> docs/conf.py
+        echo -e '\nmathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML"' >> docs/conf.py
+        git clone --depth 1 --branch master https://github.com/mathjax/MathJax.git docs/_static/MathJax
+        cd docs
+        make html
+    displayName: 'sphinx'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'docs-html'
+      targetPath: 'docs/_build/html'
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'docs'
+      targetPath: 'docs'
+
