@@ -67,8 +67,8 @@ jobs:
         pip install --upgrade sphinx
         sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" .
         echo -e '\nextensions.append("sphinx.ext.mathjax")' >> docs/conf.py
-        echo -e '\nmathjax_path="MathJax/MathJax.js?config=TeX-MML-AM_CHTML"' >> docs/conf.py
-        git clone --depth 1 --branch master https://github.com/mathjax/MathJax.git docs/_static/MathJax
+        echo -e '\nmathjax_path="MathJax/es5/tex-mml-chtml.js"' >> docs/conf.py
+        git clone --depth 1 --branch 3.0.0 https://github.com/mathjax/MathJax.git docs/_static/MathJax
         cd docs
         make html
     displayName: 'sphinx'
