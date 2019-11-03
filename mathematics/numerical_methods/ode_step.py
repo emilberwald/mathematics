@@ -135,7 +135,7 @@ class Lobatto:
             #                 np.polynomial.legendre.legval(
             #                     (2 * cj - 1),
             #                     [
-            #                         1 if dimension_ii == nof_dimensions - 1 else 0
+            #                         1 if dimension_i == nof_dimensions - 1 else 0
             #                         for dimension_i in range(nof_dimensions)
             #                     ],
             #                 )
@@ -155,19 +155,19 @@ class Lobatto:
                     1 / (nof_dimensions * (nof_dimensions - 1)),
                 ),
             ],
-            [soft(bj, operator.gt, 0.0) for bj in weights],
+            # [soft(bj, operator.gt, 0.0) for bj in weights],#?
             # unit tests failed with these -- perhaps they were implemented wrong?
             # or overdetermined system makes the solution wonky?
-            # [
-            #     soft(
-            #         abscissae[-(1 + dimension)], operator.eq, 1.0 - abscissae[dimension]
-            #     )
-            #     for dimension in range(nof_dimensions)
-            # ],
-            # [
-            #     soft(weights[-(1 + dimension)], operator.eq, weights[dimension])
-            #     for dimension in range(nof_dimensions)
-            # ],
+            [
+                soft(
+                    abscissae[-(1 + dimension)], operator.eq, 1.0 - abscissae[dimension]
+                )
+                for dimension in range(nof_dimensions)
+            ],
+            [
+                soft(weights[-(1 + dimension)], operator.eq, weights[dimension])
+                for dimension in range(nof_dimensions)
+            ],
         ]
 
     @classmethod
