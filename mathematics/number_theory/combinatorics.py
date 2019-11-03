@@ -1,6 +1,10 @@
-import functools
 import enum
-import numpy as np
+import functools
+import math
+
+
+def sign(x):
+    return math.copysign(1, x) if x else 0
 
 
 def integer_partitions(number_of_elements, total_sum):
@@ -133,7 +137,7 @@ def left_inversion_count(permutation):
     """l[i] is the number of elements where permutation[0:i] is greater than permutation[i]
     """
     return [
-        sum(np.array(permutation[0:i]) > permutation[i])
+        sum(p > permutation[i] for p in permutation[0:i])
         for i in range(0, len(permutation))
     ]
 
@@ -143,7 +147,7 @@ def right_inversion_count(permutation):
     r[i] is the number of elements where permutation[i] is smaller than permutation[i+1:]
     """
     return [
-        sum(permutation[i] > np.array(permutation[i + 1 :]))
+        sum(permutation[i] > p for p in permutation[i + 1 :])
         for i in range(0, len(permutation))
     ]
 
@@ -152,7 +156,7 @@ def permutation_symbol(*permutation):
     return functools.reduce(
         lambda x, y: x * y,
         [
-            np.sign(permutation[j] - permutation[i])
+            sign(permutation[j] - permutation[i])
             for i in range(0, len(permutation))
             for j in range(i + 1, len(permutation))
         ],
