@@ -1,6 +1,6 @@
-import functools
-import itertools
-import operator
+import functools as _functools
+import itertools as _itertools
+import operator as _operator
 
 from ..number_theory.combinatorics import parity
 
@@ -8,15 +8,15 @@ from ..number_theory.combinatorics import parity
 class Matrix:
     @staticmethod
     def determinant(A):
-        return functools.reduce(
-            operator.add,
+        return _functools.reduce(
+            _operator.add,
             [
                 (parity(permutation) if len(permutation) > 1 else 1)
-                * functools.reduce(
-                    operator.mul,
+                * _functools.reduce(
+                    _operator.mul,
                     [ai[permutation_i] for ai, permutation_i in zip(A, permutation)],
                 )
-                for permutation in itertools.permutations(range(0, len(A)))
+                for permutation in _itertools.permutations(range(0, len(A)))
             ],
         )
 

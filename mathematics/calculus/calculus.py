@@ -2,10 +2,10 @@
 calculus.py
 """
 
-import functools
-import itertools
+import functools as _functools
+import itertools as _itertools
 
-import numpy as np
+import numpy as _np
 
 
 def projected_metric(metric_tensor):
@@ -13,20 +13,20 @@ def projected_metric(metric_tensor):
 	:param metric_tensor: :math:`\gamma(e_i,e_j)=g(e_i,e_j)-\frac{g(e_0,e_i)g(e_0,e_j)}{g(e_0,e_0}`
 		:param metric_tensor: :math:`g(e_i,e_j)e^i\otimes e^j`
 	"""
-    return np.array(
+    return _np.array(
         [
             metric_tensor[(i, j)]
             - metric_tensor[(0, i)] * metric_tensor[(0, j)] / metric_tensor[(0, 0)]
-            for (i, j) in itertools.product(range(1, 4), repeat=2)
+            for (i, j) in _itertools.product(range(1, 4), repeat=2)
         ]
     ).reshape((3, 3), order="C")
 
 
 def permutation_symbol(*indices):
-    return functools.reduce(
+    return _functools.reduce(
         lambda x, y: x * y,
         [
-            np.sign(indices[j] - indices[i])
+            _np.sign(indices[j] - indices[i])
             for i in range(0, len(indices))
             for j in range(i + 1, len(indices))
         ],
@@ -45,24 +45,24 @@ def musical_isomorphism_flat(metric_tensor, tensor, nof_indices_lowered=None):
     nof_indices_lowered = (
         nof_indices if nof_indices_lowered is None else nof_indices_lowered
     )
-    return np.array(
+    return _np.array(
         [
             sum(
                 [
-                    functools.reduce(
+                    _functools.reduce(
                         lambda x, y: x * y,
                         [metric_tensor[(i, j)] for (i, j) in zip(I_i, I_j)],
                     )
                     * tensor[(I_i + I_rest)]
-                    for I_i in itertools.product(
+                    for I_i in _itertools.product(
                         range(0, nof_dimensions), repeat=nof_indices_lowered
                     )
                 ]
             )
-            for I_j in itertools.product(
+            for I_j in _itertools.product(
                 range(0, nof_dimensions), repeat=nof_indices_lowered
             )
-            for I_rest in itertools.product(
+            for I_rest in _itertools.product(
                 range(0, nof_dimensions), repeat=nof_indices - nof_indices_lowered
             )
         ]
@@ -81,24 +81,24 @@ def musical_isomorphism_sharp(metric_tensor, tensor, nof_indices_raised=None):
     nof_indices_raised = (
         nof_indices if nof_indices_raised is None else nof_indices_raised
     )
-    ginv = np.linalg.inv(metric_tensor)
-    return np.array(
+    ginv = _np.linalg.inv(metric_tensor)
+    return _np.array(
         [
             sum(
                 [
-                    functools.reduce(
+                    _functools.reduce(
                         lambda x, y: x * y, [ginv[(i, j)] for (i, j) in zip(I_i, I_j)]
                     )
                     * tensor[(I_i + I_rest)]
-                    for I_i in itertools.product(
+                    for I_i in _itertools.product(
                         range(0, nof_dimensions), repeat=nof_indices_raised
                     )
                 ]
             )
-            for I_j in itertools.product(
+            for I_j in _itertools.product(
                 range(0, nof_dimensions), repeat=nof_indices_raised
             )
-            for I_rest in itertools.product(
+            for I_rest in _itertools.product(
                 range(0, nof_dimensions), repeat=nof_indices - nof_indices_raised
             )
         ]
@@ -107,11 +107,11 @@ def musical_isomorphism_sharp(metric_tensor, tensor, nof_indices_raised=None):
 
 def create_covariant_permutation_tensor(metric_tensor, nof_indices):
     nof_dimensions = max(metric_tensor.shape)
-    coeff = np.sqrt(np.abs(np.linalg.det(metric_tensor)))
-    return np.array(
+    coeff = _np.sqrt(_np.abs(_np.linalg.det(metric_tensor)))
+    return _np.array(
         [
             coeff * permutation_symbol(*indices)
-            for indices in itertools.product(
+            for indices in _itertools.product(
                 range(0, nof_dimensions), repeat=nof_indices
             )
         ]
@@ -138,18 +138,18 @@ def hodge_star(metric_tensor, tensor):
     permutation_tensor_con_cov = musical_isomorphism_sharp(
         metric_tensor, permutation_tensor_cov, nof_indices
     )
-    coefficient = 1.0 / np.math.factorial(nof_dimensions - nof_indices)
-    return np.array(
+    coefficient = 1.0 / _np.math.factorial(nof_dimensions - nof_indices)
+    return _np.array(
         [
             sum(
                 [
                     coefficient * tensor[I_k] * permutation_tensor_con_cov[I_k + I_rest]
-                    for I_k in itertools.product(
+                    for I_k in _itertools.product(
                         range(0, nof_dimensions), repeat=nof_indices
                     )
                 ]
             )
-            for I_rest in itertools.product(
+            for I_rest in _itertools.product(
                 range(0, nof_dimensions), repeat=nof_dimensions - nof_indices
             )
         ]
@@ -175,10 +175,10 @@ def curl(exterior_derivative, metric_tensor, tensor):
     nof_indices = len(tensor.shape)
     nof_dimensions = max(metric_tensor.shape)
     tensor_b = musical_isomorphism_flat(metric_tensor, tensor, nof_indices)
-    d_tensor_b = np.array(
+    d_tensor_b = _np.array(
         [
             exterior_derivative(tensor_b[I])[j]
-            for I in itertools.product(range(0, nof_dimensions), repeat=nof_indices)
+            for I in _itertools.product(range(0, nof_dimensions), repeat=nof_indices)
             for j in range(0, nof_dimensions)
         ]
     ).reshape((nof_dimensions,) * (nof_indices + 1))
@@ -198,10 +198,10 @@ def div(exterior_derivative, metric_tensor, tensor):
     nof_dimensions = max(metric_tensor.shape)
     tensor_flat = musical_isomorphism_flat(metric_tensor, tensor, nof_indices)
     star_tensor_flat = hodge_star(metric_tensor, tensor_flat)
-    d_star_tensor_b = np.array(
+    d_star_tensor_b = _np.array(
         [
             exterior_derivative(star_tensor_flat[I])[j]
-            for I in itertools.product(
+            for I in _itertools.product(
                 range(0, nof_dimensions), repeat=nof_dimensions - nof_indices
             )
             for j in range(0, nof_dimensions)

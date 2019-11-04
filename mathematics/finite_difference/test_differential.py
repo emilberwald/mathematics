@@ -1,10 +1,13 @@
 import functools
 
+import numpy as np
 import pytest
 
 from mathematics.tools.decorators import timeout
 from mathematics.tools.testing import name_func
+
 from .differential import *
+from .differential import _finite_forward_difference, _flow
 
 
 def product(*args):
@@ -14,18 +17,18 @@ def product(*args):
 class TestFlow:
     @timeout(seconds=1.0)
     def test_flow(self):
-        np.testing.assert_allclose([0.1], flow(np.array(1), 0.1)(lambda t: t)(0))
-        np.testing.assert_allclose([-0.1], flow(np.array(-1), 0.1)(lambda t: t)(0))
+        np.testing.assert_allclose([0.1], _flow(np.array(1), 0.1)(lambda t: t)(0))
+        np.testing.assert_allclose([-0.1], _flow(np.array(-1), 0.1)(lambda t: t)(0))
 
 
 class TestFiniteForwardDifference:
     @timeout(seconds=1.0)
     def test_finite_forward_difference(self):
         C, x = np.random.rand(2)
-        actual = finite_forward_difference(1, 0.1)(lambda x: C * x)(x)
+        actual = _finite_forward_difference(1, 0.1)(lambda x: C * x)(x)
         expected = C
         np.testing.assert_allclose(actual, expected)
-        actual = finite_forward_difference(1, 0.1)(lambda x: -C * x)(x)
+        actual = _finite_forward_difference(1, 0.1)(lambda x: -C * x)(x)
         expected = -C
         np.testing.assert_allclose(actual, expected)
 

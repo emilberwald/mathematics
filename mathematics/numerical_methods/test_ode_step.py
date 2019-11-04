@@ -4,6 +4,9 @@ from mathematics.tools.decorators import timeout
 from mathematics.tools.testing import name_func
 from .ode_step import *
 
+import math
+import numpy as np
+
 
 class TestLobattoHardcodedFulfillsConstraints:
     @pytest.mark.parametrize(

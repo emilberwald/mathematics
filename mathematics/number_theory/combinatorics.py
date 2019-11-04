@@ -1,10 +1,10 @@
-import enum
-import functools
-import math
+import enum as __enum
+import functools as _functools
+import math as _math
 
 
 def sign(x):
-    return math.copysign(1, x) if x else 0
+    return _math.copysign(1, x) if x else 0
 
 
 def integer_partitions(number_of_elements, total_sum):
@@ -104,7 +104,7 @@ def permutation_to_adjacent_transpositions(permutation):
 
 
 def inversions_domainpair(permutation):
-    r""":math:`\{(i,j) \colon i<j \land \pi(i)>\pi(j)\}`
+    r""":_math:`\{(i,j) \colon i<j \land \pi(i)>\pi(j)\}`
 	NOTE: called pair of  places in wikipedia"""
     return {
         (i, j)
@@ -115,7 +115,7 @@ def inversions_domainpair(permutation):
 
 
 def inversions_codomainpair(permutation):
-    r""" :math:`\{(\pi(i),\pi(j)) \colon i<j \land \pi(i)>\pi(j)\}`
+    r""" :_math:`\{(\pi(i),\pi(j)) \colon i<j \land \pi(i)>\pi(j)\}`
     NOTE: called pair of elements in wikipedia
     """
     return {
@@ -127,7 +127,7 @@ def inversions_codomainpair(permutation):
 
 
 def inversion_vector(permutation):
-    """https://en.wikipedia.org/wiki/Inversion_(discrete_mathematics)#Inversion_related_vectors
+    """https://en.wikipedia.org/wiki/Inversion_(discrete__mathematics)#Inversion_related_vectors
 	"""
     pairs = inversions_codomainpair(permutation)
     return [sum([pair[1] == i for pair in pairs]) for i in sorted(permutation)]
@@ -153,7 +153,7 @@ def right_inversion_count(permutation):
 
 
 def permutation_symbol(*permutation):
-    return functools.reduce(
+    return _functools.reduce(
         lambda x, y: x * y,
         [
             sign(permutation[j] - permutation[i])
@@ -163,8 +163,8 @@ def permutation_symbol(*permutation):
     )
 
 
-@enum.unique
-class ParityMethod(enum.Enum):
+@__enum.unique
+class ParityMethod(__enum.Enum):
     permutation_symbol = 1
     transpositions = 2
     inversions = 3

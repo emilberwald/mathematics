@@ -1,70 +1,90 @@
-from collections import Counter
-from ..algebra.pointwise import Pointwise
+from collections import Counter as _Counter
 
-import numpy as np
+import numpy as _np
+
+from ..algebra.pointwise import Pointwise as _Pointwise
 
 
-def flow(direction, dt):
+def _flow(direction, dt):
     def flow_for(function):
         return (
-            function if isinstance(function, Pointwise) else Pointwise(function)
+            function if isinstance(function, _Pointwise) else _Pointwise(function)
         ).after(
-            lambda application_point: application_point
+            lambda point: point
             + dt
-            * (direction if isinstance(direction, Pointwise) else Pointwise(direction))(
-                application_point
-            )
+            * (
+                direction
+                if isinstance(direction, _Pointwise)
+                else _Pointwise(direction)
+            )(point)
         )
 
     return flow_for
 
 
-def finite_forward_difference(direction, dt):
+def _finite_forward_difference(direction, dt):
     def finite_forward_difference_for(function):
         return (
-            flow(direction, dt)(function) - flow(direction, 0)(function)
-        ) / Pointwise(dt)
+            _flow(direction, dt)(function) - _flow(direction, 0)(function)
+        ) / _Pointwise(dt)
 
     return finite_forward_difference_for
 
 
-def dt_heuristic(
-    direction, function, application_point, derivative_order, approximation_order
-):
+def _finite_central_difference(direction, dt):
+    def finite_central_difference_for(function):
+        return (
+            _flow(direction, dt)(function)
+            - 2.0 * _flow(direction, 0)(function)
+            + _flow(direction, -dt)(function)
+        ) / _Pointwise(dt ** 2)
+
+    return finite_central_difference_for
+
+
+def __dt_heuristic(direction, function, derivative_order, approximation_order, *args):
     """
     informative stackexchange answers:
         https://math.stackexchange.com/a/2488893/68036
         https://math.stackexchange.com/a/819015/68036
     """
     max_float_spacing_in_codomain = max(
-        (np.spacing(fi)) for fi in np.ravel(function(application_point))
+        (_np.spacing(fi)) for fi in _np.ravel(function(*args))
     )
 
-    recommended_dt = max_float_spacing_in_codomain ** (
+    recommended_dt = abs(max_float_spacing_in_codomain) ** (
         1.0 / (derivative_order + approximation_order)
     )
     trial_dts = [recommended_dt * (10.0 ** exponent) for exponent in range(0, 10)]
     trial_dfs = [
-        finite_forward_difference(direction, dt)(function)(application_point)
-        for dt in trial_dts
+        _finite_forward_difference(direction, dt)(function)(*args) for dt in trial_dts
     ]
     trial_dfs_rounded = [
-        tuple(float(format(val, ".3e")) for val in np.ravel(trial_df))
+        tuple(float(format(val, ".3e")) for val in _np.ravel(trial_df))
         for trial_df in trial_dfs
     ]
-    counts = Counter(trial_dfs_rounded)
+    counts = _Counter(trial_dfs_rounded)
     for rounded_value, _ in counts.most_common(1):
         first_common_dt = trial_dts[trial_dfs_rounded.index(rounded_value)]
         return first_common_dt
 
 
-def finite_forward_difference_heuristic(direction):
+def __finite_forward_difference_heuristic(direction):
     def finite_forward_difference_heuristic_for(function):
-        return lambda application_point: finite_forward_difference(
-            direction, dt_heuristic(direction, function, application_point, 1, 1)
-        )(function)(application_point)
+        return lambda *args: _finite_forward_difference(
+            direction, __dt_heuristic(direction, function, 1, 1, *args)
+        )(function)(*args)
 
     return finite_forward_difference_heuristic_for
+
+
+def __finite_central_difference_heuristic(direction):
+    def finite_central_difference_heuristic_for(function):
+        return lambda *args: _finite_central_difference(
+            direction, __dt_heuristic(direction, function, 1, 2, *args)
+        )(function)(*args)
+
+    return finite_central_difference_heuristic_for
 
 
 def directional_derivative(*directions):
@@ -78,10 +98,10 @@ def directional_derivative(*directions):
     """
 
     if len(directions) == 1:
-        return lambda function: finite_forward_difference_heuristic(directions[-1])(
+        return lambda function: __finite_forward_difference_heuristic(directions[-1])(
             function
         )
     elif len(directions) > 1:
-        return lambda function: finite_forward_difference_heuristic(directions[:-1])(
+        return lambda function: __finite_forward_difference_heuristic(directions[:-1])(
             directional_derivative(*directions[:-1])
         )

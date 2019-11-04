@@ -64,16 +64,16 @@ class PointwiseCalculus(Pointwise):
 
         return type(self)(__riemann)
 
-    def derivative(self):
+    def derivation(self):
         return type(self)(directional_derivative(self))
 
-    def derivation(self):
-        def __applied_derivation(function):
-            if isinstance(function, numbers.Number):
-                return type(function)(0)
-            elif isinstance(function, Pointwise):
-                return function.derivative()(self)
+    def derivative(self):
+        def __derivative_in_direction(direction):
+            if isinstance(direction, numbers.Number):
+                return type(direction)(0)
+            elif isinstance(direction, Pointwise):
+                return direction.derivation()(self)
             else:
                 raise NotImplementedError()
 
-        return type(self)(__applied_derivation)
+        return type(self)(__derivative_in_direction)

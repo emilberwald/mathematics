@@ -1,8 +1,8 @@
-import functools
-import itertools
-import math
-import operator
-import sys
+import functools as _functools
+import itertools as _itertools
+import math as _math
+import operator as _operator
+import sys as _sys
 
 
 class Pointwise:
@@ -28,19 +28,19 @@ class Pointwise:
 
     def __abs__(self):
         def __abs(*args, **kwargs):
-            return type(self).__op(self, operator.abs, *args, **kwargs)
+            return type(self).__op(self, _operator.abs, *args, **kwargs)
 
         return type(self)(__abs)
 
     def __neg__(self):
         def __neg(*args, **kwargs):
-            return type(self).__op(self, operator.__neg__, *args, **kwargs)
+            return type(self).__op(self, _operator.__neg__, *args, **kwargs)
 
         return type(self)(__neg)
 
     def __pos__(self):
         def __pos(*args, **kwargs):
-            return type(self).__op(self, operator.__pos__, *args, **kwargs)
+            return type(self).__op(self, _operator.__pos__, *args, **kwargs)
 
         return type(self)(__pos)
 
@@ -55,7 +55,7 @@ class Pointwise:
     def __lt__(self, rhs):
         # assert isinstance(rhs, Pointwise)
         def __lt(*args, **kwargs):
-            return type(self).__binop(self, operator.__lt__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__lt__, rhs, *args, **kwargs)
 
         return type(self)(__lt)
 
@@ -63,7 +63,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __le(*args, **kwargs):
-            return type(self).__binop(self, operator.__le__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__le__, rhs, *args, **kwargs)
 
         return type(self)(__le)
 
@@ -71,7 +71,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __eq(*args, **kwargs):
-            return type(self).__binop(self, operator.__eq__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__eq__, rhs, *args, **kwargs)
 
         return type(self)(__eq)
 
@@ -79,7 +79,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __ne(*args, **kwargs):
-            return type(self).__binop(self, operator.__ne__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__ne__, rhs, *args, **kwargs)
 
         return type(self)(__ne)
 
@@ -87,7 +87,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __ge(*args, **kwargs):
-            return type(self).__binop(self, operator.__ge__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__ge__, rhs, *args, **kwargs)
 
         return type(self)(__ge)
 
@@ -95,7 +95,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __gt(*args, **kwargs):
-            return type(self).__binop(self, operator.__gt__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__gt__, rhs, *args, **kwargs)
 
         return type(self)(__gt)
 
@@ -103,7 +103,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __add(*args, **kwargs):
-            return type(self).__binop(self, operator.__add__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__add__, rhs, *args, **kwargs)
 
         return type(self)(__add)
 
@@ -111,7 +111,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __and(*args, **kwargs):
-            return type(self).__binop(self, operator.__and__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__and__, rhs, *args, **kwargs)
 
         return type(self)(__and)
 
@@ -119,7 +119,9 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __floordiv(*args, **kwargs):
-            return type(self).__binop(self, operator.__floordiv__, rhs, *args, **kwargs)
+            return type(self).__binop(
+                self, _operator.__floordiv__, rhs, *args, **kwargs
+            )
 
         return type(self)(__floordiv)
 
@@ -127,7 +129,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __mod(*args, **kwargs):
-            return type(self).__binop(self, operator.__mod__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__mod__, rhs, *args, **kwargs)
 
         return type(self)(__mod)
 
@@ -135,7 +137,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __mul(*args, **kwargs):
-            return type(self).__binop(self, operator.__mul__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__mul__, rhs, *args, **kwargs)
 
         return type(self)(__mul)
 
@@ -143,7 +145,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __or(*args, **kwargs):
-            return type(self).__binop(self, operator.__or__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__or__, rhs, *args, **kwargs)
 
         return type(self)(__or)
 
@@ -151,7 +153,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __pow(*args, **kwargs):
-            return type(self).__binop(self, operator.__pow__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__pow__, rhs, *args, **kwargs)
 
         return type(self)(__pow)
 
@@ -159,7 +161,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __sub(*args, **kwargs):
-            return type(self).__binop(self, operator.__sub__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__sub__, rhs, *args, **kwargs)
 
         return type(self)(__sub)
 
@@ -167,7 +169,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __truediv(*args, **kwargs):
-            return type(self).__binop(self, operator.__truediv__, rhs, *args, **kwargs)
+            return type(self).__binop(self, _operator.__truediv__, rhs, *args, **kwargs)
 
         return type(self)(__truediv)
 
@@ -179,9 +181,9 @@ class Pointwise:
 
         def __after(*args, **kwargs):
             try:
-                return self(*rhs(*args, **kwargs))
-            except:
                 return self(rhs(*args, **kwargs))
+            except:
+                return self(*rhs(*args, **kwargs))
 
         return type(self)(__after)
 

@@ -1,6 +1,6 @@
-import functools
-import itertools
-import operator
+import functools as _functools
+import itertools as _itertools
+import operator as _operator
 
 import sympy
 
@@ -40,8 +40,8 @@ def multilinear_mapping_as_tensor(cls, vector_base_to_dual_base, *vector_bases):
     dual_vector_bases = tuple(
         vector_base_to_dual_base(vector_base) for vector_base in vector_bases
     )
-    return lambda f, vector_bases=vector_bases, dual_bases=dual_vector_bases: functools.reduce(
-        operator.add,
+    return lambda f, vector_bases=vector_bases, dual_bases=dual_vector_bases: _functools.reduce(
+        _operator.add,
         [
             cls(
                 {
@@ -58,7 +58,7 @@ def multilinear_mapping_as_tensor(cls, vector_base_to_dual_base, *vector_bases):
                     )
                 }
             )
-            for tensor_index in itertools.product(
+            for tensor_index in _itertools.product(
                 *[range(0, len(vector_base)) for vector_base in vector_bases]
             )
         ],

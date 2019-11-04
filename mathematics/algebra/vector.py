@@ -1,5 +1,5 @@
-import functools
-import operator
+import functools as _functools
+import operator as _operator
 
 
 class TupleVector(tuple):
@@ -21,22 +21,22 @@ class TupleVector(tuple):
             return type(self)(selfi(arg, **kwargs) for selfi, arg in zip(self, args))
 
     def __add__(self, rhs):
-        return type(self).__binop(self, operator.__add__, rhs)
+        return type(self).__binop(self, _operator.__add__, rhs)
 
     def __sub__(self, rhs):
-        return type(self).__binop(self, operator.__sub__, rhs)
+        return type(self).__binop(self, _operator.__sub__, rhs)
 
     def __mul__(self, rhs):
         raise NotImplementedError()
 
     def __truediv__(self, rhs):
-        return type(self).__binop(self, operator.__truediv__, rhs)
+        return type(self).__binop(self, _operator.__truediv__, rhs)
 
     def __rmul__(self, lhs):
         # this is wrong if it is supposed to be noncommutative module
-        return type(self).__binop(self, operator.__mul__, lhs)
+        return type(self).__binop(self, _operator.__mul__, lhs)
 
     def __abs__(self):
         return (
-            functools.reduce(operator.add, (abs(selfi) ** 2 for selfi in self)) ** 0.5
+            _functools.reduce(_operator.add, (abs(selfi) ** 2 for selfi in self)) ** 0.5
         )

@@ -1,5 +1,7 @@
-import numpy as np
 from math import gamma
+
+import numpy as _np
+
 
 # https://en.wikipedia.org/wiki/Finite_difference_coefficient#Arbitrary_stencil_points
 def one_dimensional_schema(stencil_points, derivative_order):
@@ -23,7 +25,7 @@ def one_dimensional_schema(stencil_points, derivative_order):
         for order in range(0, len(stencil_points))
     ]
 
-    weights = np.linalg.solve(lhs, rhs)
+    weights = _np.linalg.solve(lhs, rhs)
     return weights
 
 
@@ -47,13 +49,13 @@ def fornberg(upper_derivative_order, x0, grid_points):
             ):
                 try:
                     coeff0 = d[derivative_order][upper_gridpoint_no - 1][gridpoint_no]
-                except (IndexError, KeyError) as e:
+                except (IndexError, KeyError) as _:
                     coeff0 = 0
                 try:
                     coeff1 = d[derivative_order - 1][upper_gridpoint_no - 1][
                         gridpoint_no
                     ]
-                except (IndexError, KeyError) as e:
+                except (IndexError, KeyError) as _:
                     coeff1 = 0
                 d[derivative_order][upper_gridpoint_no][gridpoint_no] = (
                     (grid_points[upper_gridpoint_no] - x0) * coeff0
@@ -66,13 +68,13 @@ def fornberg(upper_derivative_order, x0, grid_points):
                 coeff0 = d[derivative_order - 1][upper_gridpoint_no - 1][
                     upper_gridpoint_no - 1
                 ]
-            except (IndexError, KeyError) as e:
+            except (IndexError, KeyError) as _:
                 coeff0 = 0
             try:
                 coeff1 = d[derivative_order][upper_gridpoint_no - 1][
                     upper_gridpoint_no - 1
                 ]
-            except (IndexError, KeyError) as e:
+            except (IndexError, KeyError) as _:
                 coeff1 = 0
             d[derivative_order][upper_gridpoint_no][upper_gridpoint_no] = (
                 c1

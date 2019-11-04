@@ -2,12 +2,12 @@
 Functionality for stepping forward in dynamical systems.
 """
 
-import math
-import operator
+import math as _math
+import operator as _operator
 
-import numpy as np
-import scipy as sp
-from scipy import optimize
+import numpy as _np
+import scipy as __sp
+from scipy import optimize as __optimize
 
 from .butcher_tableu import BUTCHER_TABLEU
 
@@ -24,14 +24,14 @@ class Lobatto:
 
     @staticmethod
     def pack(butcher_matrix, weights, abscissae):
-        model_parameters = np.hstack(
-            (np.ravel(butcher_matrix), np.ravel(weights), np.ravel(abscissae))
+        model_parameters = _np.hstack(
+            (_np.ravel(butcher_matrix), _np.ravel(weights), _np.ravel(abscissae))
         )
         return model_parameters
 
     @staticmethod
     def unpack(model_parameters):
-        dimension = int(math.sqrt(len(model_parameters) + 1) - 1)
+        dimension = int(_math.sqrt(len(model_parameters) + 1) - 1)
         butcher_matrix = model_parameters[: -2 * dimension].reshape(
             dimension, dimension
         )
@@ -106,19 +106,19 @@ class Lobatto:
         nof_dimensions = len(abscissae)
         return [
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_b(2 * nof_dimensions - 2)(
                     model_parameters
                 )
             ],
             [
-                soft(abscissae[0], operator.eq, 0.0),
-                soft(abscissae[-1], operator.eq, 1.0),
+                soft(abscissae[0], _operator.eq, 0.0),
+                soft(abscissae[-1], _operator.eq, 1.0),
             ],
-            [soft(0, operator.le, ci) for ci in abscissae],
-            [soft(ci, operator.le, 1.0) for ci in abscissae],
+            [soft(0, _operator.le, ci) for ci in abscissae],
+            [soft(ci, _operator.le, 1.0) for ci in abscissae],
             [
-                soft(abscissae[i], operator.lt, abscissae[i + 1])
+                soft(abscissae[i], _operator.lt, abscissae[i + 1])
                 for i in range(nof_dimensions - 1)
             ],
             # This version did not give good results !? Something wrong with it?
@@ -147,11 +147,13 @@ class Lobatto:
             # ],
             [
                 soft(
-                    weights[0], operator.eq, 1 / (nof_dimensions * (nof_dimensions - 1))
+                    weights[0],
+                    _operator.eq,
+                    1 / (nof_dimensions * (nof_dimensions - 1)),
                 ),
                 soft(
                     weights[-1],
-                    operator.eq,
+                    _operator.eq,
                     1 / (nof_dimensions * (nof_dimensions - 1)),
                 ),
             ],
@@ -160,12 +162,14 @@ class Lobatto:
             # or overdetermined system makes the solution wonky?
             [
                 soft(
-                    abscissae[-(1 + dimension)], operator.eq, 1.0 - abscissae[dimension]
+                    abscissae[-(1 + dimension)],
+                    _operator.eq,
+                    1.0 - abscissae[dimension],
                 )
                 for dimension in range(nof_dimensions)
             ],
             [
-                soft(weights[-(1 + dimension)], operator.eq, weights[dimension])
+                soft(weights[-(1 + dimension)], _operator.eq, weights[dimension])
                 for dimension in range(nof_dimensions)
             ],
         ]
@@ -176,16 +180,16 @@ class Lobatto:
         nof_dimensions = len(abscissae)
         return [
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_c(nof_dimensions)(model_parameters)
             ],
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_d(nof_dimensions - 2)(model_parameters)
             ],
-            [soft(a1j, operator.eq, 0.0) for a1j in butcher_matrix[0]],
+            [soft(a1j, _operator.eq, 0.0) for a1j in butcher_matrix[0]],
             [
-                soft(asj, operator.eq, bj)
+                soft(asj, _operator.eq, bj)
                 for asj, bj in zip(butcher_matrix[-1], weights)
             ],
         ]
@@ -196,15 +200,15 @@ class Lobatto:
         nof_dimensions = len(abscissae)
         return [
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_c(nof_dimensions - 2)(model_parameters)
             ],
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_d(nof_dimensions)(model_parameters)
             ],
-            [soft(ai[0], operator.eq, weights[0]) for ai in butcher_matrix],
-            [soft(ai[-1], operator.eq, 0.0) for ai in butcher_matrix],
+            [soft(ai[0], _operator.eq, weights[0]) for ai in butcher_matrix],
+            [soft(ai[-1], _operator.eq, 0.0) for ai in butcher_matrix],
         ]
 
     @classmethod
@@ -213,16 +217,16 @@ class Lobatto:
         nof_dimensions = len(abscissae)
         return [
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_c(nof_dimensions - 1)(model_parameters)
             ],
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_d(nof_dimensions - 1)(model_parameters)
             ],
-            [soft(ai[0], operator.eq, weights[0]) for ai in butcher_matrix],
+            [soft(ai[0], _operator.eq, weights[0]) for ai in butcher_matrix],
             [
-                soft(asj, operator.eq, bj)
+                soft(asj, _operator.eq, bj)
                 for asj, bj in zip(butcher_matrix[-1], weights)
             ],
         ]
@@ -233,15 +237,15 @@ class Lobatto:
         nof_dimensions = len(abscissae)
         return [
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_c(nof_dimensions - 1)(model_parameters)
             ],
             [
-                soft(constraint, operator.eq, 0.0)
+                soft(constraint, _operator.eq, 0.0)
                 for constraint in cls.assumption_d(nof_dimensions - 1)(model_parameters)
             ],
-            [soft(ai[-1], operator.eq, 0.0) for ai in butcher_matrix],
-            [soft(a1j, operator.eq, 0.0) for a1j in butcher_matrix[0]],
+            [soft(ai[-1], _operator.eq, 0.0) for ai in butcher_matrix],
+            [soft(a1j, _operator.eq, 0.0) for a1j in butcher_matrix[0]],
         ]
 
     @classmethod
@@ -249,7 +253,7 @@ class Lobatto:
         cls, specific_constraints, soft=lambda x, cmp, y: cmp(x, y)
     ):
         def system(model_parameters):
-            return np.hstack(
+            return _np.hstack(
                 (
                     *cls.shared_constraints(soft, model_parameters),
                     *specific_constraints(soft, model_parameters),
@@ -262,7 +266,7 @@ class Lobatto:
     def __try_to_minimize(
         cls, system_to_minimize, butcher_matrix, weights, abscissae, epsilon=1e-1
     ):
-        sol = sp.optimize.minimize(
+        sol = __sp.optimize.minimize(
             system_to_minimize, cls.pack(butcher_matrix, weights, abscissae)
         )
         if sol.success:
@@ -281,7 +285,7 @@ class Lobatto:
         cls, system_to_find_kernel, butcher_matrix, weights, abscissae
     ):
         # Need to choose a solver that allows for the output to be different than the input
-        sol = sp.optimize.root(
+        sol = __sp.optimize.root(
             system_to_find_kernel,
             cls.pack(butcher_matrix, weights, abscissae),
             method="lm",
@@ -296,7 +300,7 @@ class Lobatto:
         butcher_matrix, weights, abscissae = latest
         reqs = system_requirements(cls.pack(butcher_matrix, weights, abscissae))
         if all(
-            [np.allclose(savedi, latesti) for savedi, latesti in zip(saved, latest)]
+            [_np.allclose(savedi, latesti) for savedi, latesti in zip(saved, latest)]
         ):
             abscissae[0] = 0.0
             abscissae[-1] = 1.0
@@ -329,15 +333,15 @@ class Lobatto:
             butcher_matrix, weights, abscissae = initial_guess
 
         def soft_min(lhs, cmp, rhs):
-            return (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
+            return (not cmp(lhs, rhs)) * _np.linalg.norm(lhs - rhs)
 
         constraints_min = cls.create_constraint_system(specific_constraints, soft_min)
 
         def system_to_minimize(x):
-            return np.linalg.norm(constraints_min(x))
+            return _np.linalg.norm(constraints_min(x))
 
         def soft_0(lhs, cmp, rhs):
-            return (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
+            return (not cmp(lhs, rhs)) * _np.linalg.norm(lhs - rhs)
 
         system_to_find_kernel = cls.create_constraint_system(
             specific_constraints, soft_0
@@ -386,13 +390,13 @@ class Lobatto:
 
     @classmethod
     def hardcoded_butcher_tableu(cls, order, identifier):
-        if operator.eq(identifier, cls.iiia):
+        if _operator.eq(identifier, cls.iiia):
             name = "lobatto_iiia"
-        elif operator.eq(identifier, cls.iiib):
+        elif _operator.eq(identifier, cls.iiib):
             name = "lobatto_iiib"
-        elif operator.eq(identifier, cls.iiic):
+        elif _operator.eq(identifier, cls.iiic):
             name = "lobatto_iiic"
-        elif operator.eq(identifier, cls.iiicstar):
+        elif _operator.eq(identifier, cls.iiicstar):
             name = "lobatto_iiic*"
         else:
             name = identifier
@@ -446,14 +450,16 @@ class RungeKutta:
                 for dimension_i in range(nof_dimensions)
             ]
 
-        sol = sp.optimize.root(system_for_intermediate_stages, np.ones_like(abscissae))
+        sol = __sp.optimize.root(
+            system_for_intermediate_stages, _np.ones_like(abscissae)
+        )
         return sol.x
 
     @staticmethod
     def explicit_intermediate_stages(
         butcher_matrix, abscissae, function, t_0, y_0, delta_t
     ):
-        intermediate_stages = np.zeros_like(abscissae)
+        intermediate_stages = _np.zeros_like(abscissae)
         nof_dimensions = len(abscissae)
         for dimension_i in range(nof_dimensions):
             intermediate_stages[dimension_i] = function(
@@ -474,7 +480,7 @@ class RungeKutta:
     def solve_for_intermediate_stages(
         cls, butcher_matrix, abscissae, function, t_0, y_0, delta_t
     ):
-        if np.allclose(butcher_matrix, np.tril(butcher_matrix, -1)) and np.allclose(
+        if _np.allclose(butcher_matrix, _np.tril(butcher_matrix, -1)) and _np.allclose(
             abscissae, [0] + abscissae[1:]
         ):
             return cls.explicit_intermediate_stages(
