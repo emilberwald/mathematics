@@ -1,5 +1,6 @@
+import numpy as np
 import pytest
-import numpy as _np
+
 from .schema import *
 
 
@@ -11,7 +12,7 @@ class TestStencilPoints:
         """
 
         weights = one_dimensional_schema([-3, -2, -1, 0, 1], 4)
-        _np.testing.assert_allclose(weights, [1, -4, 6, -4, 1])
+        np.testing.assert_allclose(weights, [1, -4, 6, -4, 1])
 
     def test_fornberg(self):
         weights = fornberg(4, 0, (-4, -3, -2, -1, 0, 1, 2, 3, 4))

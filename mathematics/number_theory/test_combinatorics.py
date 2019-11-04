@@ -1,5 +1,6 @@
 import itertools
-import numpy as _np
+
+import numpy as np
 import pytest
 from pytest import raises
 
@@ -10,7 +11,7 @@ from mathematics.tools.testing import name_func
 class TestPermutation:
     @pytest.mark.timeout(1)
     def test_equivalence_of_parity_methods(self):
-        permutation = _np.random.permutation(range(0, 10))
+        permutation = np.random.permutation(range(0, 10))
         parities = [parity(permutation, method) for method in list(ParityMethod)]
         assert len(set(parities)) == 1
 

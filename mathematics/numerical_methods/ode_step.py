@@ -6,8 +6,8 @@ import math as _math
 import operator as _operator
 
 import numpy as _np
-import scipy as __sp
-from scipy import optimize as __optimize
+import scipy as _sp
+from scipy import optimize as _optimize
 
 from .butcher_tableu import BUTCHER_TABLEU
 
@@ -266,7 +266,7 @@ class Lobatto:
     def __try_to_minimize(
         cls, system_to_minimize, butcher_matrix, weights, abscissae, epsilon=1e-1
     ):
-        sol = __sp.optimize.minimize(
+        sol = _sp.optimize.minimize(
             system_to_minimize, cls.pack(butcher_matrix, weights, abscissae)
         )
         if sol.success:
@@ -285,7 +285,7 @@ class Lobatto:
         cls, system_to_find_kernel, butcher_matrix, weights, abscissae
     ):
         # Need to choose a solver that allows for the output to be different than the input
-        sol = __sp.optimize.root(
+        sol = _sp.optimize.root(
             system_to_find_kernel,
             cls.pack(butcher_matrix, weights, abscissae),
             method="lm",
@@ -450,7 +450,7 @@ class RungeKutta:
                 for dimension_i in range(nof_dimensions)
             ]
 
-        sol = __sp.optimize.root(
+        sol = _sp.optimize.root(
             system_for_intermediate_stages, _np.ones_like(abscissae)
         )
         return sol.x

@@ -1,4 +1,4 @@
-import enum as __enum
+import enum as _enum
 import functools as _functools
 import math as _math
 
@@ -163,8 +163,8 @@ def permutation_symbol(*permutation):
     )
 
 
-@__enum.unique
-class ParityMethod(__enum.Enum):
+@_enum.unique
+class ParityMethod(_enum.Enum):
     permutation_symbol = 1
     transpositions = 2
     inversions = 3
