@@ -1,11 +1,8 @@
 import functools
 import itertools
 import math
-import numbers
 import operator
 import sys
-
-from .matrix import Matrix
 
 
 class Pointwise:
@@ -201,90 +198,3 @@ class Pointwise:
                 return rhs(self(*args, **kwargs))
 
         return type(self)(__before)
-
-    @staticmethod
-    def KoszulFormula(g, X, Y, Z):
-        """
-        g(\nabla_X Y, Z)
-        """
-        return 0.5 * (
-            X.derivation(g(Y, Z))
-            + Y.derivation(g(X, Z))
-            - Z.derivation(g(X, Y))
-            + g(X.commutator(Y), Z)
-            - g(X.commutator(Z), Y)
-            - g(Y.commutator(Z), X)
-        )
-
-    @staticmethod
-    def KoszulExpansion(g, X, Y, E):
-        # https://math.stackexchange.com/a/2878272
-        # v = u_1*a_1 + u_2*a_2
-        # <v, u_i> = sum_j <u_i, u_j> * a_j
-        # a_j = <u_i, u_j>^{-1} * <v, u_i>
-        # KoszulFormula gives g(\nabla_X Y, Z) ~ <v, u_i>
-        gramian = [[g(ei, ej) for j, ej in enumerate(E)] for i, ei in enumerate(E)]
-        gramianInverse = Matrix.inverse(gramian)
-        koszul = [Pointwise.KoszulFormula(g, X, Y, ei) for i, ei in enumerate(E)]
-        return [koszul[i] * ei for i, ei in enumerate(gramianInverse)]
-
-    def connection(self, rhs, g, E):
-        return self.derivation(abs(rhs)) * (rhs / abs(rhs)) + abs(
-            rhs
-        ) * Pointwise.KoszulExpansion(g, self, rhs / abs(rhs), E)
-
-    def commutator(self, rhs):
-        # assert isinstance(rhs, Pointwise)
-        return self.after(rhs) - rhs.after(self)
-
-    def torsion(self, rhs, g, E):
-        # assert isinstance(rhs, Pointwise)
-        return (
-            self.connection(rhs, g, E)
-            - rhs.connection(self, g, E)
-            - self.commutator(rhs)
-        )
-
-    def riemann(self, rhs, g, E):
-        # assert isinstance(rhs, Pointwise)
-
-        def __riemann(application):
-            assert isinstance(application, Pointwise)
-            return (
-                self.connection(rhs.connection(application, g, E), g, E)
-                - rhs.connection(self.connection(application, g, E), g, E)
-                - self.commutator(rhs).connection(application, g, E)
-            )
-
-        return type(self)(__riemann)
-
-    def derivative(self, approximation_order=2):
-        DERIVATIVE_ORDER = 1
-
-        def __directional_derivative(direction):
-            # rule of thumb used
-            # https://math.stackexchange.com/a/2488893/68036
-            # https://math.stackexchange.com/a/819015/68036
-            # perhaps use finite_difference .... ?
-            dt = sys.float_info.epsilon ** (
-                1.0 / (DERIVATIVE_ORDER + approximation_order)
-            )
-            return (
-                self.after(Pointwise(lambda point: point + dt * direction(point)))
-                - self
-            ) / abs(Pointwise(lambda point: dt))
-
-        return type(self)(__directional_derivative)
-
-    def derivation(self, approximation_order=2):
-        def __applied_derivation(function):
-            if isinstance(function, numbers.Number):
-                return type(function)(0)
-            elif isinstance(function, Pointwise):
-                return function.derivative(approximation_order=approximation_order)(
-                    self
-                )
-            else:
-                raise NotImplementedError()
-
-        return type(self)(__applied_derivation)
