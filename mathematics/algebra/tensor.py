@@ -139,15 +139,15 @@ class Tensor(dict):
         self.update(result)
         return self
 
-    def trace(self, first_slot, second_slot, pairing=None):
-        r"""Trace/contraction of tensor, over vector space indices as indicated in first_slot and second_slot, 
+    def trace(self, first_slot_index, second_slot_index, pairing=None):
+        r"""Trace/contraction of tensor, over vector space indices as indicated in first_slot_index and second_slot_index, 
 		
 		NOTE: Might not work for braided monodial categories since it does not contract until fixpoint (it calls braiding_map though)
 		NOTE: the default pairing tries both cov(con) and con(cov)
 		:param self: 
 		:type self: tensor
-		:param first_slot: index of first vector space in pairing 
-		:param second_slot: index of second vector space in pairing 
+		:param first_slot_index: index of first vector space in pairing 
+		:param second_slot_index: index of second vector space in pairing 
 		:param pairing: :math:`\langle \mathbf{v_1},\mathbf{v_2} \rangle`
 		:return: Contracted tensor.
 		TODO: Write math.
@@ -158,12 +158,12 @@ class Tensor(dict):
         contraction = type(self)()
         for key_self in self.keys():
             braided_tensor = type(self)({key_self: self[key_self]}).braiding_map(
-                [first_slot]
-                + [second_slot]
+                [first_slot_index]
+                + [second_slot_index]
                 + [
-                    slot
-                    for slot in range(0, len(key_self))
-                    if slot not in (first_slot, second_slot)
+                    slot_index
+                    for slot_index in range(0, len(key_self))
+                    if slot_index not in (first_slot_index, second_slot_index)
                 ]
             )
             for braided_key in braided_tensor.keys():
