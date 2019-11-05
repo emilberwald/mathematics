@@ -210,17 +210,17 @@ class Clifford(Tensor):
 		:rtype: [type]
 		"""
 
-        def first_key_not_in_normal_form(search_space, key_normal_form):
-            for key_of_other_summand in search_space:
-                if key_of_other_summand != key_normal_form and set(
-                    key_of_other_summand
-                ) == set(key_normal_form):
-                    return key_of_other_summand
+        def first_key_not_in_normal_form(keys, key_normal_form):
+            for key in keys:
+                if key != key_normal_form and set(key) == set(key_normal_form):
+                    return key
             return None
 
         already_normalized = True
         while True:
-            key_not_in_normal_form = first_key_not_in_normal_form(self, key_normal_form)
+            key_not_in_normal_form = first_key_not_in_normal_form(
+                self.keys(), key_normal_form
+            )
             if key_not_in_normal_form:
                 slot_permutation = [
                     key_normal_form.index(slot) for slot in key_not_in_normal_form
