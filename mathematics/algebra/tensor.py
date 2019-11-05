@@ -20,7 +20,7 @@ class Tensor(dict):
 		:return: :math:`\bigotimes_{\mathsf{e_A}\in \textup{base tensors}}\mathsf{e_A} = \bigotimes_{\mathsf{e_A}\in \textup{base tensors}}(\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k)`
 		:rtype: [tuple]
 		"""
-        return tuple(key_slot for key in keys for key_slot in key)
+        return tuple(slot for key in keys for slot in key)
 
     # region algebraic operations
 
@@ -81,11 +81,11 @@ class Tensor(dict):
 		"""
 
         A = copy.deepcopy(self)
-        for keyB in B.keys():
-            if keyB in self.keys():
-                A[keyB] = self[keyB] + B[keyB]
+        for B_key in B.keys():
+            if B_key in self.keys():
+                A[B_key] = self[B_key] + B[B_key]
             else:
-                A[keyB] = B[keyB]
+                A[B_key] = B[B_key]
         return A
 
     def __neg__(self):
