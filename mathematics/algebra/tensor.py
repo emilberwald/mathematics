@@ -131,7 +131,7 @@ class Tensor(dict):
 
         result = type(self)(
             {
-                tuple(key[slot] for slot in slot_permutation): self[key]
+                tuple(key[slot_index] for slot_index in slot_permutation): self[key]
                 for key in self.keys()
             }
         )
