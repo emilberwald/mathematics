@@ -53,23 +53,23 @@ class Clifford(Tensor):
 		"""
 
         result = type(self)()
-        for indices_self in self:
-            indices_result = list()
-            coefficient = self[indices_self]
-            current_v, lookahead_v = itertools.tee(indices_self, 2)
-            next(lookahead_v, None)
-            for v_i in current_v:
-                v_j = next(lookahead_v, None)
-                if v_j and v_i == v_j:
-                    coefficient = coefficient * type(self).symmetric_bilinear_form(
-                        v_i, v_j
+        for key_self in self.keys():
+            key_result = list()
+            value_self = self[key_self]
+            current_key, lookahead_key = itertools.tee(key_self, 2)
+            next(lookahead_key, None)
+            for slot_i in current_key:
+                slot_j = next(lookahead_key, None)
+                if slot_j and slot_i == slot_j:
+                    value_self = value_self * type(self).symmetric_bilinear_form(
+                        slot_i, slot_j
                     )
-                    next(current_v, None)
-                    next(lookahead_v, None)
+                    next(current_key, None)
+                    next(lookahead_key, None)
                 else:
-                    indices_result.append(v_i)
+                    key_result.append(slot_i)
             result = result + type(self)(
-                {type(self).__merge_indices(*[indices_result]): coefficient}
+                {type(self).__merge_keys(*[key_result]): value_self}
             )
         self.clear()
         self.update(result)
@@ -84,7 +84,7 @@ class Clifford(Tensor):
 		:param adjacent_transposition: pair with two adjacent slots to be swapped; (u,v) in expression :math:`\cdots\otimes u \otimes v\otimes\cdots`
 		"""
 
-        def clifford_swap(e_i, e_j):
+        def clifford_swap(slot_i, slot_j):
             r"""Uses the ideal in the clifford algebra,
 
 			.. math::
@@ -102,38 +102,38 @@ class Clifford(Tensor):
 
             return type(self)(
                 {
-                    type(self).__merge_indices((e_j,), (e_i,)): -1,
-                    type(self).__merge_indices(): 2
-                    * type(self).symmetric_bilinear_form(e_i, e_j),
+                    type(self).__merge_keys((slot_j,), (slot_i,)): -1,
+                    type(self).__merge_keys(): 2
+                    * type(self).symmetric_bilinear_form(slot_i, slot_j),
                 }
             )
 
         result = type(self)()
-        for indices_self in self:
+        for key_self in self.keys():
             # ensure that the swap can be made with the available slots
-            if max(adjacent_transposition) <= len(indices_self):
+            if max(adjacent_transposition) <= len(key_self):
                 prefix = type(self)(
                     {
-                        type(self).__merge_indices(
-                            *indices_self[0 : min(adjacent_transposition)]
-                        ): self[indices_self]
+                        type(self).__merge_keys(
+                            *key_self[0 : min(adjacent_transposition)]
+                        ): self[key_self]
                     }
                 )
                 root = clifford_swap(
-                    *indices_self[
+                    *key_self[
                         min(adjacent_transposition) : max(adjacent_transposition) + 1
                     ]
                 )
                 postfix = type(self)(
                     {
-                        type(self).__merge_indices(
-                            *indices_self[max(adjacent_transposition) + 1 :]
+                        type(self).__merge_keys(
+                            *key_self[max(adjacent_transposition) + 1 :]
                         ): 1
                     }
                 )
                 result = result + prefix @ root @ postfix
             else:
-                result = result + type(self)({indices_self: self[indices_self]})
+                result = result + type(self)({key_self: self[key_self]})
         self.clear()
         self.update(result)
         return self
@@ -162,33 +162,37 @@ class Clifford(Tensor):
 
     # region simplification
 
-    def find_first_indices_and_slots_with_multiple_occurences_of_a_index(self):
-        for indices in self:
-            slots_with_same_index_by_index = {
-                e: [i for i, ei in enumerate(indices) if ei == e] for e in set(indices)
+    def find_first_key_with_duplicate_slots_and_their_indices(self):
+        for key_self in self.keys():
+            duplicate_slot_in_key_to_indices = {
+                slot: [i for i, slot_i in enumerate(key_self) if slot_i == slot]
+                for slot in set(key_self)
             }
-            for index, slots_with_same_index in slots_with_same_index_by_index.items():
-                if len(slots_with_same_index) > 1:
-                    return namedtuple("indices_and_slots", ["indices", "slots"])(
-                        indices=indices, slots=slots_with_same_index
+            for _, indices in duplicate_slot_in_key_to_indices.items():
+                if len(indices) > 1:
+                    return namedtuple("key_with_indices", ["key", "indices"])(
+                        key=key_self, indices=indices
                     )
         return None
 
-    def equal_indices_reduced_yet(self):
+    def equal_slots_reduced_yet(self):
         """
 		[summary]
 		NOTE: returns False if it mutated self, otherwise True
 		"""
         already_reduced = True
         while True:
-            indices_and_slots = (
-                self.find_first_indices_and_slots_with_multiple_occurences_of_a_index()
+            key_with_duplicate_slots_and_their_indices = (
+                self.find_first_key_with_duplicate_slots_and_their_indices()
             )
-            if indices_and_slots:
-                permutation = indices_and_slots.slots + [
-                    slot
-                    for slot in range(0, len(indices_and_slots.indices))
-                    if slot not in indices_and_slots.slots
+            if key_with_duplicate_slots_and_their_indices:
+                permutation = key_with_duplicate_slots_and_their_indices.indices + [
+                    slot_index
+                    for slot_index in range(
+                        0, len(key_with_duplicate_slots_and_their_indices.key)
+                    )
+                    if slot_index
+                    not in key_with_duplicate_slots_and_their_indices.indices
                 ]
                 self.braiding_map(permutation).quotient().without_zeros()
                 already_reduced = False
@@ -196,33 +200,32 @@ class Clifford(Tensor):
                 break
         return already_reduced
 
-    def normalized_indices_yet(self, indices_normal_form):
+    def normalized_key_yet(self, key_normal_form):
         """[summary]
 		NOTE: returns False if it mutated self, otherwise True
 		
-		:param indices_normal_form: [description]
-		:type indices_normal_form: [type]
+		:param key_normal_form: [description]
+		:type key_normal_form: [type]
 		:return: [description]
 		:rtype: [type]
 		"""
 
-        def first_indices_not_in_normal_form(search_space, indices_normal_form):
+        def first_indices_not_in_normal_form(search_space, key_normal_form):
             for indices_of_other_summand in search_space:
-                if indices_of_other_summand != indices_normal_form and set(
+                if indices_of_other_summand != key_normal_form and set(
                     indices_of_other_summand
-                ) == set(indices_normal_form):
+                ) == set(key_normal_form):
                     return indices_of_other_summand
             return None
 
         already_normalized = True
         while True:
             indices_not_in_normal_form = first_indices_not_in_normal_form(
-                self, indices_normal_form
+                self, key_normal_form
             )
             if indices_not_in_normal_form:
                 slot_permutation = [
-                    indices_normal_form.index(slot)
-                    for slot in indices_not_in_normal_form
+                    key_normal_form.index(slot) for slot in indices_not_in_normal_form
                 ]
                 other_summand_to_permute = type(self)(
                     {indices_not_in_normal_form: self[indices_not_in_normal_form]}
@@ -250,10 +253,10 @@ class Clifford(Tensor):
 		:rtype: [type]
 		"""
 
-        maybe = self.equal_indices_reduced_yet()
+        maybe = self.equal_slots_reduced_yet()
         if maybe:
             for indices in self:
-                maybe = maybe and self.normalized_indices_yet(indices)
+                maybe = maybe and self.normalized_key_yet(indices)
                 if maybe:
                     continue
                 else:

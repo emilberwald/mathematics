@@ -12,19 +12,15 @@ from .dual import Dual
 
 class Tensor(dict):
     @staticmethod
-    def __merge_indices(*base_tensors):
+    def __merge_keys(*keys):
         r"""Tensor product for pure tensors without coefficients.
 		
-		:param base_tensors: each argument is a tensor base vector :math:`\mathsf{e_A} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_A})-1}`
+		:param keys: each argument is a tensor base vector :math:`\mathsf{e_A} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_A})-1}`
 		:type e_A: [tuple]
 		:return: :math:`\bigotimes_{\mathsf{e_A}\in \textup{base tensors}}\mathsf{e_A} = \bigotimes_{\mathsf{e_A}\in \textup{base tensors}}(\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k)`
 		:rtype: [tuple]
 		"""
-        base_tensor_result = list()
-        for base_tensor in base_tensors:
-            for base_vector in base_tensor:
-                base_tensor_result.append(base_vector)
-        return tuple(base_tensor_result)
+        return tuple(key_slot for key in keys for key_slot in key)
 
     # region algebraic operations
 
@@ -54,12 +50,7 @@ class Tensor(dict):
 		:rtype: [tensor]
 		"""
 
-        return type(self)(
-            {
-                tensor_product_vector: scalar * self[tensor_product_vector]
-                for tensor_product_vector in self
-            }
-        )
+        return type(self)({key: scalar * self[key] for key in self.keys()})
 
     def __add__(self, B):
         r"""tensor addition
@@ -90,20 +81,15 @@ class Tensor(dict):
 		"""
 
         A = copy.deepcopy(self)
-        for tensor_base_vector in B:
-            if tensor_base_vector in self:
-                A[tensor_base_vector] = self[tensor_base_vector] + B[tensor_base_vector]
+        for keyB in B.keys():
+            if keyB in self.keys():
+                A[keyB] = self[keyB] + B[keyB]
             else:
-                A[tensor_base_vector] = B[tensor_base_vector]
+                A[keyB] = B[keyB]
         return A
 
     def __neg__(self):
-        return type(self)(
-            {
-                tensor_base_vector: -self[tensor_base_vector]
-                for tensor_base_vector in self
-            }
-        )
+        return type(self)({key: -self[key] for key in self.keys()})
 
     def __sub__(self, B):
         return self.__add__(-B)
@@ -119,19 +105,19 @@ class Tensor(dict):
 		:return: :math:`\mathsf{self} \otimes \mathsf{B} = (\sum_i c_1^i \mathsf{e_1}_i)\otimes(\sum_i c_2^i \mathsf{e_2}_i) = \sum_i \sum_j (c_1^i\cdot c_2^j)\cdot(\mathsf{e_1}_i \otimes \mathsf{e_2}_j)`
 		:rtype: [tensor]
 		"""
-        result = type(self)()
-        for indices_self, coefficient_self in self.items():
-            for indices_b, coefficient_b in B.items():
-                indices_result = type(self).__merge_indices(indices_self, indices_b)
-                if indices_result not in result:
-                    result[indices_result] = coefficient_self * coefficient_b
+        tensor_product = type(self)()
+        for self_key, self_value in self.items():
+            for B_key, B_value in B.items():
+                merged_key = type(self).__merge_keys(self_key, B_key)
+                if merged_key not in tensor_product.keys():
+                    tensor_product[merged_key] = self_value * B_value
                 else:
                     # perhaps this could happen if one of the tensor base vectors are of mixed order?
                     # GUESS: summation best way to handle this?
-                    result = result + type(self)(
-                        {indices_result: coefficient_self * coefficient_b}
+                    tensor_product = tensor_product + type(self)(
+                        {merged_key: self_value * B_value}
                     )
-        return result
+        return tensor_product
 
     def braiding_map(self, slot_permutation):
         """[summary]
@@ -145,8 +131,8 @@ class Tensor(dict):
 
         result = type(self)(
             {
-                tuple(indices[slot] for slot in slot_permutation): self[indices]
-                for indices in self
+                tuple(key[slot] for slot in slot_permutation): self[key]
+                for key in self.keys()
             }
         )
         self.clear()
@@ -169,27 +155,25 @@ class Tensor(dict):
 		"""
         pairing = Dual.default_pairing if pairing is None else pairing
 
-        result = type(self)()
-        for indices_self in self:
-            braided_tensor = type(self)(
-                {indices_self: self[indices_self]}
-            ).braiding_map(
+        contraction = type(self)()
+        for key_self in self.keys():
+            braided_tensor = type(self)({key_self: self[key_self]}).braiding_map(
                 [first_slot]
                 + [second_slot]
                 + [
                     slot
-                    for slot in range(0, len(indices_self))
+                    for slot in range(0, len(key_self))
                     if slot not in (first_slot, second_slot)
                 ]
             )
-            for braided_indices in braided_tensor:
-                coefficient = braided_tensor[braided_indices]
-                pairing_factor = pairing(*braided_indices[0:2])
+            for braided_key in braided_tensor.keys():
+                braided_value = braided_tensor[braided_key]
+                pairing_factor = pairing(*braided_key[0:2])
                 contracted_summand = type(self)(
-                    {braided_indices[2:]: coefficient * pairing_factor}
+                    {braided_key[2:]: braided_value * pairing_factor}
                 )
-                result = result + contracted_summand
-        return result
+                contraction = contraction + contracted_summand
+        return contraction
 
     # endregion
 
@@ -208,10 +192,8 @@ class Tensor(dict):
 		"""
 
         result = self @ arg
-        order_self = max(
-            [len(tensor_base_vector) for tensor_base_vector in self.keys()]
-        )
-        order_arg = max([len(tensor_base_vector) for tensor_base_vector in arg.keys()])
+        order_self = max([len(key_self) for key_self in self.keys()])
+        order_arg = max([len(key_arg) for key_arg in arg.keys()])
         for r in range(0, min(order_self, order_arg)):
             result = result.trace(order_self - r - 1, order_self - r)
         return result
@@ -229,11 +211,7 @@ class Tensor(dict):
 		"""
 
         result = type(self)(
-            {
-                base_vector: coefficient
-                for base_vector, coefficient in self.items()
-                if coefficient != zero_coefficient
-            }
+            {key: value for key, value in self.items() if value != zero_coefficient}
         )
         self.clear()
         self.update(result)
@@ -248,13 +226,13 @@ class Tensor(dict):
             [
                 r" \cdot ".join(
                     [
-                        r"({0})".format(coefficient),
-                        r" \otimes ".join(["{0}".format(v) for v in base])
-                        if base
+                        r"({0})".format(value),
+                        r" \otimes ".join(["{0}".format(v) for v in key])
+                        if key
                         else r"1",  # scalar 𝟙
                     ]
                 )
-                for base, coefficient in self.items()
+                for key, value in self.items()
             ]
         )
 
