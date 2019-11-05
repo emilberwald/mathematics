@@ -210,25 +210,23 @@ class Clifford(Tensor):
 		:rtype: [type]
 		"""
 
-        def first_indices_not_in_normal_form(search_space, key_normal_form):
-            for indices_of_other_summand in search_space:
-                if indices_of_other_summand != key_normal_form and set(
-                    indices_of_other_summand
+        def first_key_not_in_normal_form(search_space, key_normal_form):
+            for key_of_other_summand in search_space:
+                if key_of_other_summand != key_normal_form and set(
+                    key_of_other_summand
                 ) == set(key_normal_form):
-                    return indices_of_other_summand
+                    return key_of_other_summand
             return None
 
         already_normalized = True
         while True:
-            indices_not_in_normal_form = first_indices_not_in_normal_form(
-                self, key_normal_form
-            )
-            if indices_not_in_normal_form:
+            key_not_in_normal_form = first_key_not_in_normal_form(self, key_normal_form)
+            if key_not_in_normal_form:
                 slot_permutation = [
-                    key_normal_form.index(slot) for slot in indices_not_in_normal_form
+                    key_normal_form.index(slot) for slot in key_not_in_normal_form
                 ]
                 other_summand_to_permute = type(self)(
-                    {indices_not_in_normal_form: self[indices_not_in_normal_form]}
+                    {key_not_in_normal_form: self[key_not_in_normal_form]}
                 )
                 result = (
                     (
@@ -255,8 +253,8 @@ class Clifford(Tensor):
 
         maybe = self.equal_slots_reduced_yet()
         if maybe:
-            for indices in self:
-                maybe = maybe and self.normalized_key_yet(indices)
+            for key_self in self.keys():
+                maybe = maybe and self.normalized_key_yet(key_self)
                 if maybe:
                     continue
                 else:
