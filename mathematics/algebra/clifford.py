@@ -32,7 +32,11 @@ class Clifford(Tensor):
         if type(other) is type(self):
             # TODO: check that this does not mix Clifford classes without different symmetric bilinear forms,
             # as created with class factories.
-            return self.__dict__ == other.__dict__
+            return (
+                self.items() == other.items()
+                and self.symmetric_bilinear_form.__code__.co_code
+                == other.symmetric_bilinear_form.__code__.co_code
+            )
         return NotImplemented
 
     def __hash__(self):
@@ -52,7 +56,7 @@ class Clifford(Tensor):
 		:rtype: :py:class:`type(self)`
 		"""
 
-        result = type(self)()
+        result = Tensor()
         for key_self in self.keys():
             key_result = list()
             value_self = self[key_self]
@@ -68,24 +72,14 @@ class Clifford(Tensor):
                     next(lookahead_key, None)
                 else:
                     key_result.append(slot_i)
-            result = result + type(self)(
-                {type(self).__merge_keys(*[key_result]): value_self}
-            )
+            result = result + Tensor({Tensor._merge_keys(*[key_result]): value_self})
         self.clear()
         self.update(result)
         return self
 
-    def swap(self, adjacent_transposition):
-        r"""
-		Swaps the order of the tensor multiplications
-		NOTE: mutates self and returns self (to allow chains)
-
-		:param self: [description]
-		:param adjacent_transposition: pair with two adjacent slots to be swapped; (u,v) in expression :math:`\cdots\otimes u \otimes v\otimes\cdots`
-		"""
-
-        def clifford_swap(slot_i, slot_j):
-            r"""Uses the ideal in the clifford algebra,
+    @classmethod
+    def _clifford_swap(cls, slot_i, slot_j) -> Tensor:
+        r"""Uses the ideal in the clifford algebra,
 
 			.. math::
 				u\otimes u - Q(u)1 \in [0]
@@ -100,40 +94,48 @@ class Clifford(Tensor):
 			Perhaps something like :math:`\operatorname{Ideal}(u\otimes v) - u\otimes v`?
 			"""
 
-            return type(self)(
-                {
-                    type(self).__merge_keys((slot_j,), (slot_i,)): -1,
-                    type(self).__merge_keys(): 2
-                    * type(self).symmetric_bilinear_form(slot_i, slot_j),
-                }
-            )
+        return Tensor(
+            {
+                Tensor._merge_keys((slot_j,), (slot_i,)): -1,
+                Tensor._merge_keys(): 2 * cls.symmetric_bilinear_form(slot_i, slot_j),
+            }
+        )
 
-        result = type(self)()
+    def swap(self, adjacent_transposition):
+        r"""
+		Swaps the order of the tensor multiplications
+		NOTE: mutates self and returns self (to allow chains)
+
+		:param self: [description]
+		:param adjacent_transposition: pair with two adjacent slots to be swapped; (u,v) in expression :math:`\cdots\otimes u \otimes v\otimes\cdots`
+		"""
+
+        result = Tensor()
         for key_self in self.keys():
             # ensure that the swap can be made with the available slots
-            if max(adjacent_transposition) <= len(key_self):
-                prefix = type(self)(
+            if max(adjacent_transposition) < len(key_self):
+                prefix = Tensor(
                     {
-                        type(self).__merge_keys(
+                        Tensor._merge_keys(
                             *key_self[0 : min(adjacent_transposition)]
                         ): self[key_self]
                     }
                 )
-                root = clifford_swap(
+                root = type(self)._clifford_swap(
                     *key_self[
                         min(adjacent_transposition) : max(adjacent_transposition) + 1
                     ]
                 )
-                postfix = type(self)(
+                postfix = Tensor(
                     {
-                        type(self).__merge_keys(
+                        Tensor._merge_keys(
                             *key_self[max(adjacent_transposition) + 1 :]
                         ): 1
                     }
                 )
-                result = result + prefix @ root @ postfix
+                result = result + prefix * root * postfix
             else:
-                result = result + type(self)({key_self: self[key_self]})
+                result = result + Tensor({key_self: self[key_self]})
         self.clear()
         self.update(result)
         return self
@@ -254,7 +256,12 @@ class Clifford(Tensor):
         maybe = self.equal_slots_reduced_yet()
         if maybe:
             for key_self in self.keys():
-                maybe = maybe and self.normalized_key_yet(key_self)
+                normalized_key = (
+                    key_self
+                    if len(key_self) == 1
+                    else type(key_self)(sorted(key_self, key=lambda k: repr(k)))
+                )
+                maybe = maybe and self.normalized_key_yet(normalized_key)
                 if maybe:
                     continue
                 else:
@@ -271,6 +278,12 @@ class Clifford(Tensor):
         while not self.simplified_yet():
             pass
         return self
+
+    def __mul__(self, other):
+        """
+        Clifford product
+        """
+        return type(self)(super().__mul__(other)).simplify()
 
 
 # endregion

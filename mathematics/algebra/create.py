@@ -5,9 +5,10 @@ import operator as _operator
 import sympy
 
 from .clifford import Clifford
+from .pointwise import Pointwise
 
 
-def class_factory(name, baseclasses, **kwargs):
+def class_factory(name, *baseclasses, **kwargs):
     if name in globals():
         return globals()[name]
     else:
@@ -18,131 +19,113 @@ def class_factory(name, baseclasses, **kwargs):
 
 def create_clifford(name, symmetric_bilinear_form):
     return class_factory(
-        name, (Clifford,), symmetric_bilinear_form=symmetric_bilinear_form
+        name, Clifford, symmetric_bilinear_form=symmetric_bilinear_form
     )
 
 
-def multilinear_mapping_as_tensor(cls, vector_base_to_dual_base, *vector_bases):
+def multilinear_mapping_as_tensor(cls, slot_to_dual, *bases):
     r"""
 	Expands multilinear function as tensor. 
 	NOTE: not sure if the math is valid for vector valued multilinear mappings.
 
-	:param: *vector_bases: Vector space base of each argument of the function.
-	:return: Returns a lambda function which takes the mulilinear function. 
+    :param: slots_to_dual:  Converts a (basis-)vector to its corresponding dual
+    :param: *bases:         tuple where each element is an ordered basis.
+                            Each ordered basis appears in same order as in the function call.
+	:return:                Returns a lambda with domain over (scalar or vector-valued-)multilinear functions.
 
 	.. math::
-		f \mapsto \mathsf{F}=
-		f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \cdot {\mathbf{e}_{i_1}^{(1)}}^{*}\otimes\cdots\otimes{\mathbf{e}_{i_k}^{(k)}}^{*} 
-		= f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \cdot \mathbf{e}_{(1)}^{i_1}\otimes\cdots\otimes\mathbf{e}_{(k)}^{i_k} 
+		f \mapsto \mathsf{F}
+        \\=
+        f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \otimes {\mathbf{e}_{i_1}^{(1)}}^{*}\otimes\cdots\otimes{\mathbf{e}_{i_k}^{(k)}}^{*}
+        \\=
+        \begin{cases}
+            f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)}) \otimes \mathbf{e}_{(1)}^{i_1}\otimes\cdots\otimes\mathbf{e}_{(k)}^{i_k} &\text{(codomain is field)}
+        \\  f(\mathbf{e}_{i_1}^{(1)},\ldots,\mathbf{e}_{i_k}^{(k)})^{i_{\operatorname{cod}f}} \otimes \mathbf{e}^{(\operatorname{cod}f)}_{i_{\operatorname{cod}f}} \otimes \mathbf{e}_{(1)}^{i_1}\otimes\cdots\otimes\mathbf{e}_{(k)}^{i_k} & \text{(codomain is vector space)}
+        \end{cases}
 
 	:rtype: [type]
 	"""
-    dual_vector_bases = tuple(
-        vector_base_to_dual_base(vector_base) for vector_base in vector_bases
-    )
-    return lambda f, vector_bases=vector_bases, dual_bases=dual_vector_bases: _functools.reduce(
+    return lambda multilinear_mapping: _functools.reduce(
         _operator.add,
         [
             cls(
                 {
                     tuple(
-                        dual_bases[vector_space_index][tensor_index[vector_space_index]]
-                        for vector_space_index in range(0, len(dual_bases))
-                    ): f(
+                        slot_to_dual(
+                            bases[base_index][base_index_to_basis_index[base_index]]
+                        )
+                        for base_index in range(0, len(bases))
+                    ): multilinear_mapping(
                         *[
-                            vector_bases[vector_space_index][
-                                tensor_index[vector_space_index]
-                            ]
-                            for vector_space_index in range(0, len(vector_bases))
+                            bases[base_index][base_index_to_basis_index[base_index]]
+                            for base_index in range(0, len(bases))
                         ]
                     )
                 }
             )
-            for tensor_index in _itertools.product(
-                *[range(0, len(vector_base)) for vector_base in vector_bases]
+            for base_index_to_basis_index in _itertools.product(
+                *[range(0, len(basis)) for basis in bases]
             )
         ],
-        cls(),
     )
 
 
-def mixed_tensor(cls, vector_base, order, vector_base_to_dual_base):
-    contravariant_order, covariant_order = order
-    dual_base = vector_base_to_dual_base(vector_base)
-    return multilinear_mapping_as_tensor(
-        cls,
-        vector_base_to_dual_base,
-        *[dual_base] * contravariant_order,
-        *[vector_base] * covariant_order
-    )
-
-
-def kronecker_delta_tensor(cls, vector_base, vector_base_to_dual_base):
+def kronecker_delta_tensor(cls, basis, slot_to_dual):
     r"""Returns kronecker delta
 	(GUESS) :math:`\boldsymbol{\delta} = \sum_{i,j} e_j^{*}(e_i) e_i^{**} \otimes e_j^{*}`
     :param cls:
-    :param vector_base:
-    :param vector_base_to_dual_base:
+    :param basis:
+    :param slot_to_dual:
 	:return: kronecker delta as a mixed tensor
 	"""
-    return mixed_tensor(cls, vector_base, vector_base_to_dual_base, (1, 1))(
-        lambda cov, con: cov(con)
+    return multilinear_mapping_as_tensor(
+        cls, slot_to_dual, basis, tuple(slot_to_dual(slot) for slot in basis)
     )
 
 
-def symbolic_tensor(cls, symbol, vector_base, order, vector_base_to_dual_base):
-    """[summary]
-	
-    :param cls:
-	:param symbol: Example: "A"
-	:param symbol: [str]
-	:param vector_base: e.g. tensor.standard_base_vectorspace(dimension) or sympy.symbols("e_{0:3}")
-	:param order: [description]
-    :param vector_base_to_dual_base:
-	:return: [description]
-	"""
-
-    def latex_vector_base_vector(vector_base, dual_base, v):
+def make_symbol(symbol, basis, dual_basis, tensor_base):
+    def latex_base(slot):
         return "".join(
             [
                 "^{",
-                str(dual_base.index(v) if v in dual_base else " "),
+                str(dual_basis.index(slot) if slot in dual_basis else " "),
                 "}",
                 "_{",
-                str(vector_base.index(v) if v in vector_base else " "),
+                str(basis.index(slot) if slot in basis else " "),
                 "}",
             ]
         )
 
-    def latex_tensor_base_vector(vector_base, dual_base, tensor_base_vector):
-        return "".join(
-            [
-                latex_vector_base_vector(vector_base, dual_base, v)
-                for v in tensor_base_vector
-            ]
-        )
+    def latex_tensor_base(tensor_base):
+        return "".join([latex_base(slot) for slot in tensor_base])
 
-    def make_symbol(symbol, vector_base, dual_base, tensor_base_vector):
-        return sympy.Symbol(
-            (symbol + "{indices}").format(
-                indices=latex_tensor_base_vector(
-                    vector_base, dual_base, tensor_base_vector
-                )
-            )
-        )
-
-    return mixed_tensor(cls, vector_base, order, vector_base_to_dual_base)(
-        lambda *tensor_base_vector, symbol=symbol, vector_base=vector_base, dual_base=vector_base_to_dual_base(
-            vector_base
-        ): make_symbol(
-            symbol, vector_base, dual_base, tensor_base_vector
-        )
-    )
+    return sympy.Symbol((symbol + "{indices}").format(indices=latex_tensor_base(basis)))
 
 
-def same_coefficient_tensor(
-    cls, coefficient, vector_base, rank, vector_base_to_dual_base
-):
-    return mixed_tensor(cls, vector_base, rank, vector_base_to_dual_base)(
-        lambda *indices: coefficient
+def mixed_tensor(cls, symbol, basis, order, slot_to_dual):
+    """
+    :param cls:
+	:param symbol:          Example: "A"
+	:param basis:           Contravariant basis
+                            Examples: 
+                                sympy.symbols("e_{0:3}")
+                                standard_base_vectorspace(dimension)
+	:param order:           (contravariant order, covariant order)
+    :param slot_to_dual:    maps vector basis base to dual vector basis base
+	:return: [description]
+
+    A change of scale from meters to smaller unit...
+        *contravariant* vector (component bigger, base shorter)
+            ex: velocity            (distance/time)
+        *covariant* vector base (component smaller, base longer)
+            ex: spatial gradient    (1/distance)
+
+	"""
+
+    contravariant_order, covariant_order = order
+    return multilinear_mapping_as_tensor(
+        cls,
+        slot_to_dual,
+        *((basis,) * contravariant_order),
+        *((tuple(slot_to_dual(base) for base in basis),) * covariant_order)
     )

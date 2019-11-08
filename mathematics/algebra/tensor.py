@@ -3,16 +3,17 @@ Tensor algebra
 """
 
 __all__ = ["Tensor"]
-import copy
+import copy as _copy
+from collections.abc import Iterable as _Iterable
 
-from pylatexenc.latex2text import LatexNodes2Text
+from pylatexenc.latex2text import LatexNodes2Text as _LatexNodes2Text
 
-from .dual import Dual
+from .dual import Dual as _Dual
 
 
 class Tensor(dict):
     @staticmethod
-    def __merge_keys(*keys):
+    def _merge_keys(*keys):
         r"""Tensor product for pure tensors without coefficients.
 		
 		:param keys: each argument is a tensor base vector :math:`\mathsf{e_A} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_A})-1}`
@@ -20,7 +21,14 @@ class Tensor(dict):
 		:return: :math:`\bigotimes_{\mathsf{e_A}\in \textup{base tensors}}\mathsf{e_A} = \bigotimes_{\mathsf{e_A}\in \textup{base tensors}}(\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k)`
 		:rtype: [tuple]
 		"""
-        return tuple(slot for key in keys for slot in key)
+        merged_key = list()
+        for key in keys:
+            if isinstance(key, _Iterable):
+                for slot in key:
+                    merged_key.append(slot)
+            else:
+                merged_key.append(key)
+        return tuple(merged_key)
 
     # region algebraic operations
 
@@ -80,7 +88,7 @@ class Tensor(dict):
 		:rtype: [tensor]
 		"""
 
-        A = copy.deepcopy(self)
+        A = _copy.deepcopy(self)
         for B_key in B.keys():
             if B_key in self.keys():
                 A[B_key] = self[B_key] + B[B_key]
@@ -94,7 +102,7 @@ class Tensor(dict):
     def __sub__(self, B):
         return self.__add__(-B)
 
-    def __matmul__(self, B):
+    def __mul__(self, B):
         r"""Tensor procuct of tensors.
 		(GUESS) This whole function is guesswork. I think the proper term is unbiased monodial category?
 		
@@ -108,7 +116,7 @@ class Tensor(dict):
         tensor_product = type(self)()
         for self_key, self_value in self.items():
             for B_key, B_value in B.items():
-                merged_key = type(self).__merge_keys(self_key, B_key)
+                merged_key = type(self)._merge_keys(self_key, B_key)
                 if merged_key not in tensor_product.keys():
                     tensor_product[merged_key] = self_value * B_value
                 else:
@@ -153,7 +161,7 @@ class Tensor(dict):
 		TODO: Write math.
 		:rtype: [tensor]
 		"""
-        pairing = Dual.default_pairing if pairing is None else pairing
+        pairing = _Dual.default_pairing if pairing is None else pairing
 
         contraction = type(self)()
         for key_self in self.keys():
@@ -191,7 +199,7 @@ class Tensor(dict):
 		:rtype: [tensor]
 		"""
 
-        result = self @ arg
+        result = self * arg
         order_self = max([len(key_self) for key_self in self.keys()])
         order_arg = max([len(key_arg) for key_arg in arg.keys()])
         for r in range(0, min(order_self, order_arg)):
@@ -237,7 +245,7 @@ class Tensor(dict):
         )
 
     def __str__(self):
-        return LatexNodes2Text().latex_to_text(self.latex())
+        return _LatexNodes2Text().latex_to_text(self.latex())
 
 
 # endregion
