@@ -116,6 +116,19 @@ class Tensor(dict):
         tensor_product = type(self)()
         for self_key, self_value in self.items():
             for B_key, B_value in B.items():
+                # if (
+                #     isinstance(self_key, _Iterable)
+                #     and isinstance(B_key, _Iterable)
+                #     and any(
+                #         isinstance(lslot, type(self).Counit)
+                #         and rslot == 1
+                #         or isinstance(rslot, type(self).Counit)
+                #         and lslot == 1
+                #         for lslot, rslot in zip(self_key, B_key)
+                #     )
+                # ):
+                #     continue
+                # else:
                 merged_key = type(self)._merge_keys(self_key, B_key)
                 if merged_key not in tensor_product.keys():
                     tensor_product[merged_key] = self_value * B_value
@@ -126,6 +139,52 @@ class Tensor(dict):
                         {merged_key: self_value * B_value}
                     )
         return tensor_product
+
+    # def coproduct(self):
+    #     coprod = type(self)()
+    #     for key, value in self.items():
+    #         coprod = coprod + type(self)({(key, 1): value})
+    #         coprod = coprod + type(self)({(1, key): value})
+    #     return coprod
+
+    # class Counit:
+    #     def __init__(self):
+    #         pass
+
+    # def __matmul__(self, other):
+    #     """
+    #     https://en.wikipedia.org/wiki/Tensor_algebra#Coproduct
+
+    #     (... don't really understand it. it seems to juxtapose the inner tensor product over itself ... ?)
+    #     """
+    #     coproduct = type(self)()
+    #     for key_self, value_self in self.items():
+    #         for key_other, value_other in other.items():
+    #             coproduct = coproduct + type(self)(
+    #                 {
+    #                     (
+    #                         type(self)._merge_keys(key_self, key_other),
+    #                         type(self)._merge_keys(1, 1),
+    #                     ): value_self
+    #                     * value_other
+    #                 }
+    #             )
+    #             coproduct = coproduct + type(self)(
+    #                 {(key_self, key_other): value_self * value_other}
+    #             )
+    #             coproduct = coproduct + type(self)(
+    #                 {(key_other, key_self): value_other * value_self}
+    #             )
+    #             coproduct = coproduct + type(self)(
+    #                 {
+    #                     (
+    #                         type(self)._merge_keys(1, 1),
+    #                         type(self)._merge_keys(key_self, key_other),
+    #                     ): value_self
+    #                     * value_other
+    #                 }
+    #             )
+    #     return coproduct
 
     def braiding_map(self, slot_permutation):
         """[summary]

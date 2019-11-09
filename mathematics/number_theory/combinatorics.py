@@ -1,6 +1,7 @@
 import enum as _enum
 import functools as _functools
 import math as _math
+import operator as _operator
 
 
 def sign(x):
@@ -179,3 +180,35 @@ def parity(permutation, method: ParityMethod = ParityMethod.permutation_symbol):
         return (-1) ** (sum(left_inversion_count(permutation)))
     else:
         raise NotImplementedError()
+
+
+def apply_permutation(t, permutation):
+    yield from (t[pi] for pi in permutation)
+
+
+def riffle_shuffles(P, Q, op=None):
+    """
+    Returns riffle shuffles, also called (p-q)-shuffles.
+    Notation as operator: P ⧢ Q
+
+    https://en.wikipedia.org/wiki/Shuffle_algebra#Shuffle_product
+    https://en.wikipedia.org/wiki/Riffle_shuffle_permutation
+
+    :param P:   first set in shuffle. Needs to be slicable.
+    :param Q:   second set in shuffle. Needs to be slicable.
+    :param op:  if None, addition is used to combine elements during the riffle shuffle.
+    """
+    op = _operator.add if op is None else op
+    shuffles = list()
+    if P and Q:
+        shuffles.extend(
+            [op(P[0:1], riffle_shuffle) for riffle_shuffle in riffle_shuffles(P[1:], Q)]
+        )
+        shuffles.extend(
+            [op(Q[0:1], riffle_shuffle) for riffle_shuffle in riffle_shuffles(P, Q[1:])]
+        )
+    elif P:
+        shuffles.append(P)
+    elif Q:
+        shuffles.append(Q)
+    return shuffles

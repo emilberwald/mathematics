@@ -8,7 +8,7 @@ from mathematics.algebra.create import *
 
 
 class TestTensor:
-    # @pytest.mark.timeout(1)
+    @pytest.mark.timeout(1)
     def test_tensor(self):
         basis = tuple(sympy.symbols("e_{0:3}"))
         dual_basis = tuple(sympy.symbols("e^{0:3}"))

@@ -1,4 +1,5 @@
 import itertools
+from math import gamma
 
 import numpy as np
 import pytest
@@ -6,6 +7,33 @@ from pytest import raises
 
 from mathematics.number_theory.combinatorics import *
 from mathematics.tools.testing import name_func
+
+
+class TestRiffleShuffles:
+    def test_riffle_shuffles(self):
+        """
+        https://en.wikipedia.org/wiki/Shuffle_algebra#Shuffle_product
+        """
+
+        def expected_nof_shuffles(m, n):
+            return int(
+                gamma(len(m) + len(n) + 1) / (gamma(len(m) + 1) * gamma(len(n) + 1))
+            )
+
+        m = "ab"
+        n = "xy"
+        m_w_n = riffle_shuffles(m, n)
+        assert "abxy" in m_w_n
+        assert "axby" in m_w_n
+        assert "xaby" in m_w_n
+        assert "axyb" in m_w_n
+        assert "xayb" in m_w_n
+        assert "xyab" in m_w_n
+        assert len(m_w_n) == expected_nof_shuffles(m, n)
+        m = "012"
+        n = "34"
+        m_w_n = riffle_shuffles(m, n)
+        assert len(m_w_n) == expected_nof_shuffles(m, n)
 
 
 class TestPermutation:
