@@ -60,8 +60,7 @@ jobs:
   - template: azure-pipelines-dependencies.yml
   - script: |
         ls -latr
-        poetry add --dev --extras -U sphinx
-        pip install -U sphinx
+        poetry add --dev --extras sphinx
         sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" .
         echo -e '\nextensions.append("sphinx.ext.mathjax")' >> docs/conf.py
         echo -e '\nmathjax_path="MathJax/es5/tex-mml-chtml.js"' >> docs/conf.py
