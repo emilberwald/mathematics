@@ -12,7 +12,6 @@ scipy = "^1.4.1"
 sympy = "^1.5"
 graphviz = "^0.13.2"
 pylatexenc = "^2.1"
-sphinx = "^2.3.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
@@ -21,9 +20,6 @@ mypy = "^0.761"
 pylint = "^2.4.4"
 pytest-cov = "^2.8.1"
 pyside2 = "^5.14.0"
-pylama = "^7.7.1"
-bandit = "^1.6.2"
-flake8 = "^3.7.9"
 
 [build-system]
 requires = ["poetry>=0.12"]
