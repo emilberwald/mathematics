@@ -13,14 +13,14 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python37:
-        python.version: '3.7'
+      Python381:
+        python.version: '3.8.1'
   steps:
   - template: azure-pipelines-dependencies.yml
   - script: |
         ls -latr
-        pip install pytest pytest-azurepipelines pytest-cov
-        python -m pytest mathematics --doctest-modules --junitxml=junit/test-mathematics.xml --cov=mathematics --cov-report=xml --cov-report=html
+        poetry add --dev --extras pytest-azurepipelines
+        poetry run pytest --doctest-modules --junitxml=junit/test-mathematics.xml --cov=mathematics --cov-report=xml --cov-report=html
     displayName: 'pytest'
   - task: PublishCodeCoverageResults@1
     inputs:
@@ -32,14 +32,13 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python37:
-        python.version: '3.7'
+      Python381:
+        python.version: '3.8.1'
   steps:
   - template: azure-pipelines-dependencies.yml
   - script: |
       ls -latr
-      pip install pylint
-      python -m pylint --output-format=json --reports=y mathematics | tee pylint.json
+      poetry run pylint --output-format=json --reports=y mathematics | tee pylint.json
     displayName: 'pylint'
   - task: PublishPipelineArtifact@0
     inputs:
@@ -50,8 +49,8 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python37:
-        python.version: '3.7'
+      Python381:
+        python.version: '3.8.1'
   variables:
       AUTHOR: "Emil Berwald"
       SPHINX_APIDOC_OPTIONS: "members,undoc-members,private-members,special-members,show-inheritance"
@@ -59,8 +58,7 @@ jobs:
   - template: azure-pipelines-dependencies.yml
   - script: |
         ls -latr
-        pip install --upgrade sphinx
-        sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" .
+        poetry run sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" .
         echo -e '\nextensions.append("sphinx.ext.mathjax")' >> docs/conf.py
         echo -e '\nmathjax_path="MathJax/es5/tex-mml-chtml.js"' >> docs/conf.py
         git clone --depth 1 --branch 3.0.0 https://github.com/mathjax/MathJax.git docs/_static/MathJax

@@ -6,19 +6,17 @@ import pytest
 from pytest import raises
 
 from mathematics.number_theory.combinatorics import *
-from mathematics.tools.testing import name_func
+from .. import name_func
 
 
 class TestRiffleShuffles:
     def test_riffle_shuffles(self):
         """
-        https://en.wikipedia.org/wiki/Shuffle_algebra#Shuffle_product
-        """
+		https://en.wikipedia.org/wiki/Shuffle_algebra#Shuffle_product
+		"""
 
         def expected_nof_shuffles(m, n):
-            return int(
-                gamma(len(m) + len(n) + 1) / (gamma(len(m) + 1) * gamma(len(n) + 1))
-            )
+            return int(gamma(len(m) + len(n) + 1) / (gamma(len(m) + 1) * gamma(len(n) + 1)))
 
         m = "ab"
         n = "xy"
@@ -161,11 +159,7 @@ class TestPermutation:
     @pytest.mark.parametrize(
         "method,not_permutation",
         itertools.product(
-            [
-                permutation_to_adjacent_transpositions,
-                permutation_to_cycles,
-                permutation_to_transpositions,
-            ],
+            [permutation_to_adjacent_transpositions, permutation_to_cycles, permutation_to_transpositions,],
             [[7, 13, 4, 5]],
         ),
         ids=name_func,

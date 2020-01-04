@@ -98,9 +98,7 @@ class LatexNode:
 
     def as_png(self) -> bytes:
         buffer = io.BytesIO()
-        sympy.printing.preview(
-            self.latex, output="png", euler=False, viewer="BytesIO", outputbuffer=buffer
-        )
+        sympy.printing.preview(self.latex, output="png", euler=False, viewer="BytesIO", outputbuffer=buffer)
         latex_png_data = buffer.getvalue()
         buffer.close()
         return latex_png_data
@@ -113,16 +111,12 @@ class LatexNode:
         return '<img src="data:image/png;base64,' + latex_png_b64 + '"/>'
 
     def as_url_png(self, path) -> pathlib.Path:
-        sympy.printing.preview(
-            self.latex, output="png", euler=False, viewer="file", filename=path
-        )
+        sympy.printing.preview(self.latex, output="png", euler=False, viewer="file", filename=path)
         return pathlib.Path(path)
 
     def as_url_png_tmp(self, cwd=False) -> pathlib.Path:
         if cwd:
-            file = tempfile.NamedTemporaryFile(
-                suffix=".png", delete=False, dir=pathlib.Path.cwd()
-            )
+            file = tempfile.NamedTemporaryFile(suffix=".png", delete=False, dir=pathlib.Path.cwd())
         else:
             file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         file.close()
@@ -137,13 +131,7 @@ class LatexNode:
             file.write(self.latex)
             file.close()
             subprocess.call(
-                [
-                    "xelatex",
-                    "--output-directory",
-                    file.parent,
-                    "-interaction=nonstopmode",
-                    file.name,
-                ]
+                ["xelatex", "--output-directory", file.parent, "-interaction=nonstopmode", file.name,]
             )
             return pathlib.Path(file.name).joinpath(".pdf")
 
@@ -162,12 +150,7 @@ class Operation:
             return Operation.identifier.value
 
     def __init__(
-        self,
-        *domains,
-        codomain=None,
-        symbol=None,
-        algebraic_structure=None,
-        identity=None,
+        self, *domains, codomain=None, symbol=None, algebraic_structure=None, identity=None,
     ):
         self.domains = domains
         self.codomain = codomain
@@ -177,23 +160,13 @@ class Operation:
 
     def __str__(self):
         def cartesian_product(*domains):
-            return r" \times ".join(
-                [
-                    str(k) + superscript(len(list(g)))
-                    for k, g in itertools.groupby(domains)
-                ]
-            )
+            return r" \times ".join([str(k) + superscript(len(list(g))) for k, g in itertools.groupby(domains)])
 
         symbol = str(self.symbol) if self.symbol else r""
         if self.algebraic_structure:
             symbol = underset(symbol, str(self.algebraic_structure))
         if self.domains and self.codomain:
-            symbol = overset(
-                r"\rightarrow ".join(
-                    [cartesian_product(*self.domains), str(self.codomain)]
-                ),
-                symbol,
-            )
+            symbol = overset(r"\rightarrow ".join([cartesian_product(*self.domains), str(self.codomain)]), symbol,)
         elif self.domains:
             symbol = overset(cartesian_product(*self.domains), symbol)
         elif self.codomain:
@@ -247,9 +220,7 @@ class LatexWalker:
     def __init__(self, traversal=Traversal.INFIX):
         self.traversal = traversal
 
-    def __call__(
-        self, graph: networkx.MultiDiGraph, root_join=r"\quad ", fix_join=r"\qquad "
-    ):
+    def __call__(self, graph: networkx.MultiDiGraph, root_join=r"\quad ", fix_join=r"\qquad "):
         def infix(*successors, root="", graph=networkx.MultiDiGraph()):
             if successors:
                 if isinstance(root, Operation) and root.codomain:
@@ -262,11 +233,7 @@ class LatexWalker:
                             + r" \colon\quad "
                             + " , ".join(
                                 [
-                                    infix(
-                                        *graph.successors(successor),
-                                        root=successor,
-                                        graph=graph,
-                                    )
+                                    infix(*graph.successors(successor), root=successor, graph=graph,)
                                     for successor in successors
                                 ]
                             )
@@ -278,11 +245,7 @@ class LatexWalker:
                             .as_default()
                             .join(
                                 [
-                                    infix(
-                                        *graph.successors(successor),
-                                        root=successor,
-                                        graph=graph,
-                                    )
+                                    infix(*graph.successors(successor), root=successor, graph=graph,)
                                     for successor in successors
                                 ]
                             )
@@ -295,11 +258,7 @@ class LatexWalker:
                         .as_default()
                         .join(
                             [
-                                infix(
-                                    *graph.succesors(successor),
-                                    root=successor,
-                                    graph=graph,
-                                )
+                                infix(*graph.succesors(successor), root=successor, graph=graph,)
                                 for successor in successors
                             ]
                         )
@@ -313,12 +272,7 @@ class LatexWalker:
                     over = fix_join.join(
                         [LatexNode(root).as_default()]
                         + [
-                            prefix(
-                                *graph.successors(successor),
-                                root=successor,
-                                fix_join=fix_join,
-                                graph=graph,
-                            )
+                            prefix(*graph.successors(successor), root=successor, fix_join=fix_join, graph=graph,)
                             for successor in successors
                         ]
                     )
@@ -328,12 +282,7 @@ class LatexWalker:
                     return fix_join.join(
                         [LatexNode(root).as_default()]
                         + [
-                            prefix(
-                                *graph.successors(successor),
-                                root=successor,
-                                fix_join=fix_join,
-                                graph=graph,
-                            )
+                            prefix(*graph.successors(successor), root=successor, fix_join=fix_join, graph=graph,)
                             for successor in successors
                         ]
                     )
@@ -345,12 +294,7 @@ class LatexWalker:
                 if isinstance(root, Operation) and root.codomain:
                     over = fix_join.join(
                         [
-                            postfix(
-                                *graph.successors(successor),
-                                root=successor,
-                                fix_join=fix_join,
-                                graph=graph,
-                            )
+                            postfix(*graph.successors(successor), root=successor, fix_join=fix_join, graph=graph,)
                             for successor in successors
                         ]
                         + [LatexNode(root).as_default()]
@@ -360,12 +304,7 @@ class LatexWalker:
                 else:
                     return fix_join.join(
                         [
-                            postfix(
-                                *graph.successors(successor),
-                                root=successor,
-                                fix_join=fix_join,
-                                graph=graph,
-                            )
+                            postfix(*graph.successors(successor), root=successor, fix_join=fix_join, graph=graph,)
                             for successor in successors
                         ]
                         + [LatexNode(root).as_default()]
@@ -374,40 +313,16 @@ class LatexWalker:
                 return LatexNode(root).as_default()
 
         roots = get_roots(graph)
-        if LatexNode.presentation in (
-            LatexNode.Presentation.TEXT,
-            LatexNode.Presentation.UNICODE_APPROXIMATION,
-        ):
+        if LatexNode.presentation in (LatexNode.Presentation.TEXT, LatexNode.Presentation.UNICODE_APPROXIMATION,):
             if self.traversal == LatexWalker.Traversal.INFIX:
-                return root_join.join(
-                    [
-                        infix(*graph.successors(root), root=root, graph=graph)
-                        for root in roots
-                    ]
-                )
+                return root_join.join([infix(*graph.successors(root), root=root, graph=graph) for root in roots])
             elif self.traversal == LatexWalker.Traversal.PREFIX:
                 return root_join.join(
-                    [
-                        prefix(
-                            *graph.successors(root),
-                            root=root,
-                            fix_join=fix_join,
-                            graph=graph,
-                        )
-                        for root in roots
-                    ]
+                    [prefix(*graph.successors(root), root=root, fix_join=fix_join, graph=graph,) for root in roots]
                 )
             elif self.traversal == LatexWalker.Traversal.POSTFIX:
                 return root_join.join(
-                    [
-                        postfix(
-                            *graph.successors(root),
-                            root=root,
-                            fix_join=fix_join,
-                            graph=graph,
-                        )
-                        for root in roots
-                    ]
+                    [postfix(*graph.successors(root), root=root, fix_join=fix_join, graph=graph,) for root in roots]
                 )
             else:
                 raise NotImplementedError()
@@ -421,9 +336,7 @@ class LatexWalker:
                 remove_us.append(image)
             graph = networkx.relabel.convert_node_labels_to_integers(graph)
             if LatexNode.folder == LatexNode.Folder.CWD:
-                file = tempfile.NamedTemporaryFile(
-                    suffix=".dot", delete=False, dir=pathlib.Path.cwd()
-                )
+                file = tempfile.NamedTemporaryFile(suffix=".dot", delete=False, dir=pathlib.Path.cwd())
                 file.close()
                 networkx.drawing.nx_pydot.write_dot(graph, file.name)
                 result = pathlib.Path(graphviz.render("dot", "png", file.name))

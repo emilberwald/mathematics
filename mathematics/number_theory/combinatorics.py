@@ -25,27 +25,27 @@ def canonical_order(cycle):
 def permutation_to_cycles(permutation):
     r"""
 	:param permutation: permutation in 'one line notation'
-                        (see https://en.wikipedia.org/wiki/Permutation#One-line_notation),
-                        e.g. if permutation(0,1,2) -> (2,1,0) then ``permutation`` is (2,1,0)
+						(see https://en.wikipedia.org/wiki/Permutation#One-line_notation),
+						e.g. if permutation(0,1,2) -> (2,1,0) then ``permutation`` is (2,1,0)
 
-    :return:            returns the decomposition into disjoint cycles (as a set of tuples).
-                        https://en.wikipedia.org/wiki/Iterated_function#Definition
-                        Iterate 0:                  f^0 = id
-                        Iterate n+1:                f^{n+1}(x) = f(f^{n}(x))
-                        Periodic orbit:             f^{n+m}(x) = f^{n}(x)
-                            Periodic point: x
-                            Smallest ``m`` for periodic point ``x`` is the ``period of the orbit``.
-                        https://en.wikipedia.org/wiki/Cycle_detection
-                        Function iterates over a finite set might have a starting subsequence that
-                        is not repeated, but will always have a periodic orbit (repeating sequence,
-                        cycle, loop, ...).
+	:return:			returns the decomposition into disjoint cycles (as a set of tuples).
+						https://en.wikipedia.org/wiki/Iterated_function#Definition
+						Iterate 0:				  f^0 = id
+						Iterate n+1:				f^{n+1}(x) = f(f^{n}(x))
+						Periodic orbit:			 f^{n+m}(x) = f^{n}(x)
+							Periodic point: x
+							Smallest ``m`` for periodic point ``x`` is the ``period of the orbit``.
+						https://en.wikipedia.org/wiki/Cycle_detection
+						Function iterates over a finite set might have a starting subsequence that
+						is not repeated, but will always have a periodic orbit (repeating sequence,
+						cycle, loop, ...).
 
-                        A cycle is a periodic orbit, with the permutation as the iterated function.
-                        Any element of the iterated sequence is a periodic point, so there is an
-                        equivalence class of cycles that represent the same iterated sequence
-                        modulo starting point.
-                        A canonical order is a way to choose representatives from these equivalence
-                        classes by choosing a starting point in an ordered fashion.
+						A cycle is a periodic orbit, with the permutation as the iterated function.
+						Any element of the iterated sequence is a periodic point, so there is an
+						equivalence class of cycles that represent the same iterated sequence
+						modulo starting point.
+						A canonical order is a way to choose representatives from these equivalence
+						classes by choosing a starting point in an ordered fashion.
 	"""
 
     codomain = list(permutation)
@@ -67,9 +67,7 @@ def permutation_to_cycles(permutation):
                 else:
                     break
             cycles.append(cycle)
-    return {
-        canonical_order([iterate + offset for iterate in cycle]) for cycle in cycles
-    }
+    return {canonical_order([iterate + offset for iterate in cycle]) for cycle in cycles}
 
 
 def permutation_to_transpositions(permutation):
@@ -117,8 +115,8 @@ def inversions_domainpair(permutation):
 
 def inversions_codomainpair(permutation):
     r""" :_math:`\{(\pi(i),\pi(j)) \colon i<j \land \pi(i)>\pi(j)\}`
-    NOTE: called pair of elements in wikipedia
-    """
+	NOTE: called pair of elements in wikipedia
+	"""
     return {
         (permutation[i], permutation[j])
         for i in range(0, len(permutation))
@@ -136,21 +134,15 @@ def inversion_vector(permutation):
 
 def left_inversion_count(permutation):
     """l[i] is the number of elements where permutation[0:i] is greater than permutation[i]
-    """
-    return [
-        sum(p > permutation[i] for p in permutation[0:i])
-        for i in range(0, len(permutation))
-    ]
+	"""
+    return [sum(p > permutation[i] for p in permutation[0:i]) for i in range(0, len(permutation))]
 
 
 def right_inversion_count(permutation):
     """Lehmer code
-    r[i] is the number of elements where permutation[i] is smaller than permutation[i+1:]
-    """
-    return [
-        sum(permutation[i] > p for p in permutation[i + 1 :])
-        for i in range(0, len(permutation))
-    ]
+	r[i] is the number of elements where permutation[i] is smaller than permutation[i+1:]
+	"""
+    return [sum(permutation[i] > p for p in permutation[i + 1 :]) for i in range(0, len(permutation))]
 
 
 def permutation_symbol(*permutation):
@@ -188,25 +180,21 @@ def apply_permutation(t, permutation):
 
 def riffle_shuffles(P, Q, op=None):
     """
-    Returns riffle shuffles, also called (p-q)-shuffles.
-    Notation as operator: P ⧢ Q
+	Returns riffle shuffles, also called (p-q)-shuffles.
+	Notation as operator: P ⧢ Q
 
-    https://en.wikipedia.org/wiki/Shuffle_algebra#Shuffle_product
-    https://en.wikipedia.org/wiki/Riffle_shuffle_permutation
+	https://en.wikipedia.org/wiki/Shuffle_algebra#Shuffle_product
+	https://en.wikipedia.org/wiki/Riffle_shuffle_permutation
 
-    :param P:   first set in shuffle. Needs to be slicable.
-    :param Q:   second set in shuffle. Needs to be slicable.
-    :param op:  if None, addition is used to combine elements during the riffle shuffle.
-    """
+	:param P:   first set in shuffle. Needs to be slicable.
+	:param Q:   second set in shuffle. Needs to be slicable.
+	:param op:  if None, addition is used to combine elements during the riffle shuffle.
+	"""
     op = _operator.add if op is None else op
     shuffles = list()
     if P and Q:
-        shuffles.extend(
-            [op(P[0:1], riffle_shuffle) for riffle_shuffle in riffle_shuffles(P[1:], Q)]
-        )
-        shuffles.extend(
-            [op(Q[0:1], riffle_shuffle) for riffle_shuffle in riffle_shuffles(P, Q[1:])]
-        )
+        shuffles.extend([op(P[0:1], riffle_shuffle) for riffle_shuffle in riffle_shuffles(P[1:], Q)])
+        shuffles.extend([op(Q[0:1], riffle_shuffle) for riffle_shuffle in riffle_shuffles(P, Q[1:])])
     elif P:
         shuffles.append(P)
     elif Q:

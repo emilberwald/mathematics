@@ -4,8 +4,8 @@ import operator as _operator
 
 class TupleVector(tuple):
     """
-    Vector where basis is index in tuple
-    """
+	Vector where basis is index in tuple
+	"""
 
     @staticmethod
     def __binop(lhs, op, rhs):
@@ -37,6 +37,4 @@ class TupleVector(tuple):
         return type(self).__binop(self, _operator.__mul__, lhs)
 
     def __abs__(self):
-        return (
-            _functools.reduce(_operator.add, (abs(selfi) ** 2 for selfi in self)) ** 0.5
-        )
+        return _functools.reduce(_operator.add, (abs(selfi) ** 2 for selfi in self)) ** 0.5

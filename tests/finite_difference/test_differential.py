@@ -3,11 +3,11 @@ import functools
 import numpy as np
 import pytest
 
-from mathematics.tools.decorators import timeout
-from mathematics.tools.testing import name_func
+from mathematics.finite_difference.differential import *
+from mathematics.finite_difference.differential import _finite_forward_difference, _flow
+from ..decorators import timeout
 
-from .differential import *
-from .differential import _finite_forward_difference, _flow
+from .. import name_func
 
 
 def product(*args):
@@ -49,15 +49,11 @@ class TestDifferentialWithScalarFunction:
         x = np.random.rand(1)
         actual_derivative = directional_derivative(1)(function)(x)
         expected_derivative = known_derivative(x)
-        np.testing.assert_allclose(
-            actual_derivative, expected_derivative, atol=1e-5, rtol=1e-5
-        )
+        np.testing.assert_allclose(actual_derivative, expected_derivative, atol=1e-5, rtol=1e-5)
 
 
 class TestDifferentialWithVectorFunction:
-    @pytest.mark.parametrize(
-        "bilinear_map", [lambda t: np.dot(t[0], t[1])], ids=name_func
-    )
+    @pytest.mark.parametrize("bilinear_map", [lambda t: np.dot(t[0], t[1])], ids=name_func)
     @timeout(seconds=1.0)
     def test_frechet_derivative_of_bilinear_map(self, bilinear_map):
         # https://math.stackexchange.com/questions/562820/what-is-the-second-frechet-derivative-of-a-bilinear-map
@@ -94,18 +90,13 @@ class TestSecondDifferentialWithVectorFunction:
 
         def hessf(application_point):
             x, y = application_point
-            return vect(
-                vect(6 * x * (y ** 2), 6 * (x ** 2) * y),
-                vect(6 * (x ** 2) * y, 2 * x ** 3),
-            )
+            return vect(vect(6 * x * (y ** 2), 6 * (x ** 2) * y), vect(6 * (x ** 2) * y, 2 * x ** 3),)
 
         def first_frechet(application_point, direction):
             return np.dot(gradf(application_point), direction)
 
         def second_frechet(application_point, first_direction, second_direction):
-            return np.matmul(
-                second_direction, np.matmul(hessf(application_point), first_direction)
-            )
+            return np.matmul(second_direction, np.matmul(hessf(application_point), first_direction))
 
         application_point = np.random.rand(2)
         directions = [vect(*np.random.rand(2)), vect(*np.random.rand(2))]
@@ -115,8 +106,6 @@ class TestSecondDifferentialWithVectorFunction:
                 desired = first_frechet(application_point, direction)
                 np.testing.assert_allclose(actual, desired, atol=1e-4, rtol=1e-4)
         elif order == 2:
-            actual = directional_derivative(directions[1], directions[0])(f)(
-                application_point
-            )
+            actual = directional_derivative(directions[1], directions[0])(f)(application_point)
             desired = second_frechet(application_point, directions[0], directions[1])
             np.testing.assert_allclose(actual, desired, atol=1e-4, rtol=1e-4)

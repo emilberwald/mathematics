@@ -46,9 +46,7 @@ class Pointwise:
 
     def __rmul__(self, lhs):
         def __rmul(*args, **kwargs):
-            return (lhs(*args, **kwargs) if callable(lhs) else lhs) * self(
-                *args, **kwargs
-            )
+            return (lhs(*args, **kwargs) if callable(lhs) else lhs) * self(*args, **kwargs)
 
         return type(self)(__rmul)
 
@@ -119,9 +117,7 @@ class Pointwise:
         # assert isinstance(rhs, Pointwise)
 
         def __floordiv(*args, **kwargs):
-            return type(self).__binop(
-                self, _operator.__floordiv__, rhs, *args, **kwargs
-            )
+            return type(self).__binop(self, _operator.__floordiv__, rhs, *args, **kwargs)
 
         return type(self)(__floordiv)
 
@@ -175,8 +171,8 @@ class Pointwise:
 
     def after(self, rhs):
         """
-        compose
-        """
+		compose
+		"""
         # assert isinstance(rhs, Pointwise)
 
         def __after(*args, **kwargs):
@@ -189,8 +185,8 @@ class Pointwise:
 
     def before(self, rhs):
         """
-        precompose
-        """
+		precompose
+		"""
         # assert isinstance(rhs, Pointwise)
 
         def __before(*args, **kwargs):

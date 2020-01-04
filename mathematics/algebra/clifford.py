@@ -5,16 +5,14 @@ Clifford algebra
 import itertools
 from collections import namedtuple
 
-from mathematics.number_theory.combinatorics import (
-    permutation_to_adjacent_transpositions,
-)
+from mathematics.number_theory.combinatorics import permutation_to_adjacent_transpositions
 from .tensor import Tensor
 
 
 class Clifford(Tensor):
     r"""
 	Subclass of tensor that implements clifford algebra behavior when given a symmetric bilinear form.
-	
+
 	.. math::
 		\textrm{Tensor algebra quotient:}\,u\otimes u - Q(u)1 \in [0]\\
 		(u+v)\otimes(u+v) = u\otimes u + u\otimes v + v\otimes u + v\otimes v\\
@@ -23,9 +21,7 @@ class Clifford(Tensor):
 		\Leftrightarrow u\otimes v = -v\otimes u + 2\langle u,v\rangle_Q 1\\
 	"""
 
-    symmetric_bilinear_form = (
-        lambda x, y: 0
-    )  # could this be improved with metaclasses ??
+    symmetric_bilinear_form = lambda x, y: 0  # could this be improved with metaclasses ??
 
     def __eq__(self, other):
         """Overrides the default implementation, want to check that the quadratic form is equal as well"""
@@ -34,8 +30,7 @@ class Clifford(Tensor):
             # as created with class factories.
             return (
                 self.items() == other.items()
-                and self.symmetric_bilinear_form.__code__.co_code
-                == other.symmetric_bilinear_form.__code__.co_code
+                and self.symmetric_bilinear_form.__code__.co_code == other.symmetric_bilinear_form.__code__.co_code
             )
         return NotImplemented
 
@@ -65,9 +60,7 @@ class Clifford(Tensor):
             for slot_i in current_key:
                 slot_j = next(lookahead_key, None)
                 if slot_j and slot_i == slot_j:
-                    value_self = value_self * type(self).symmetric_bilinear_form(
-                        slot_i, slot_j
-                    )
+                    value_self = value_self * type(self).symmetric_bilinear_form(slot_i, slot_j)
                     next(current_key, None)
                     next(lookahead_key, None)
                 else:
@@ -114,25 +107,11 @@ class Clifford(Tensor):
         for key_self in self.keys():
             # ensure that the swap can be made with the available slots
             if max(adjacent_transposition) < len(key_self):
-                prefix = Tensor(
-                    {
-                        Tensor._merge_keys(
-                            *key_self[0 : min(adjacent_transposition)]
-                        ): self[key_self]
-                    }
-                )
+                prefix = Tensor({Tensor._merge_keys(*key_self[0 : min(adjacent_transposition)]): self[key_self]})
                 root = type(self)._clifford_swap(
-                    *key_self[
-                        min(adjacent_transposition) : max(adjacent_transposition) + 1
-                    ]
+                    *key_self[min(adjacent_transposition) : max(adjacent_transposition) + 1]
                 )
-                postfix = Tensor(
-                    {
-                        Tensor._merge_keys(
-                            *key_self[max(adjacent_transposition) + 1 :]
-                        ): 1
-                    }
-                )
+                postfix = Tensor({Tensor._merge_keys(*key_self[max(adjacent_transposition) + 1 :]): 1})
                 result = result + prefix * root * postfix
             else:
                 result = result + Tensor({key_self: self[key_self]})
@@ -155,9 +134,7 @@ class Clifford(Tensor):
 		:return: [description]
 		:rtype: [type]
 		"""
-        adjacent_transpositions = permutation_to_adjacent_transpositions(
-            slot_permutation
-        )
+        adjacent_transpositions = permutation_to_adjacent_transpositions(slot_permutation)
         for adjacent_transposition in adjacent_transpositions:
             self.swap(adjacent_transposition)
         return self
@@ -167,14 +144,11 @@ class Clifford(Tensor):
     def find_first_key_with_duplicate_slots_and_their_indices(self):
         for key_self in self.keys():
             duplicate_slot_in_key_to_indices = {
-                slot: [i for i, slot_i in enumerate(key_self) if slot_i == slot]
-                for slot in set(key_self)
+                slot: [i for i, slot_i in enumerate(key_self) if slot_i == slot] for slot in set(key_self)
             }
             for _, indices in duplicate_slot_in_key_to_indices.items():
                 if len(indices) > 1:
-                    return namedtuple("key_with_indices", ["key", "indices"])(
-                        key=key_self, indices=indices
-                    )
+                    return namedtuple("key_with_indices", ["key", "indices"])(key=key_self, indices=indices)
         return None
 
     def equal_slots_reduced_yet(self):
@@ -184,17 +158,12 @@ class Clifford(Tensor):
 		"""
         already_reduced = True
         while True:
-            key_with_duplicate_slots_and_their_indices = (
-                self.find_first_key_with_duplicate_slots_and_their_indices()
-            )
+            key_with_duplicate_slots_and_their_indices = self.find_first_key_with_duplicate_slots_and_their_indices()
             if key_with_duplicate_slots_and_their_indices:
                 permutation = key_with_duplicate_slots_and_their_indices.indices + [
                     slot_index
-                    for slot_index in range(
-                        0, len(key_with_duplicate_slots_and_their_indices.key)
-                    )
-                    if slot_index
-                    not in key_with_duplicate_slots_and_their_indices.indices
+                    for slot_index in range(0, len(key_with_duplicate_slots_and_their_indices.key))
+                    if slot_index not in key_with_duplicate_slots_and_their_indices.indices
                 ]
                 self.braiding_map(permutation).quotient().without_zeros()
                 already_reduced = False
@@ -205,7 +174,7 @@ class Clifford(Tensor):
     def normalized_key_yet(self, key_normal_form):
         """[summary]
 		NOTE: returns False if it mutated self, otherwise True
-		
+
 		:param key_normal_form: [description]
 		:type key_normal_form: [type]
 		:return: [description]
@@ -220,22 +189,12 @@ class Clifford(Tensor):
 
         already_normalized = True
         while True:
-            key_not_in_normal_form = first_key_not_in_normal_form(
-                self.keys(), key_normal_form
-            )
+            key_not_in_normal_form = first_key_not_in_normal_form(self.keys(), key_normal_form)
             if key_not_in_normal_form:
-                slot_permutation = [
-                    key_normal_form.index(slot) for slot in key_not_in_normal_form
-                ]
-                other_summand_to_permute = type(self)(
-                    {key_not_in_normal_form: self[key_not_in_normal_form]}
-                )
+                slot_permutation = [key_normal_form.index(slot) for slot in key_not_in_normal_form]
+                other_summand_to_permute = type(self)({key_not_in_normal_form: self[key_not_in_normal_form]})
                 result = (
-                    (
-                        self
-                        - other_summand_to_permute
-                        + other_summand_to_permute.braiding_map(slot_permutation)
-                    )
+                    (self - other_summand_to_permute + other_summand_to_permute.braiding_map(slot_permutation))
                     .quotient()
                     .without_zeros()
                 )
@@ -257,9 +216,7 @@ class Clifford(Tensor):
         if maybe:
             for key_self in self.keys():
                 normalized_key = (
-                    key_self
-                    if len(key_self) == 1
-                    else type(key_self)(sorted(key_self, key=lambda k: repr(k)))
+                    key_self if len(key_self) == 1 else type(key_self)(sorted(key_self, key=lambda k: repr(k)))
                 )
                 maybe = maybe and self.normalized_key_yet(normalized_key)
                 if maybe:
@@ -271,7 +228,7 @@ class Clifford(Tensor):
     def simplify(self):
         """[summary]
 		NOTE: mutates self if necessary and then returns self (to allow chains)
-		
+
 		:return: [description]
 		:rtype: [type]
 		"""
@@ -281,8 +238,8 @@ class Clifford(Tensor):
 
     def __mul__(self, other):
         """
-        Clifford product
-        """
+		Clifford product
+		"""
         return type(self)(super().__mul__(other)).simplify()
 
 

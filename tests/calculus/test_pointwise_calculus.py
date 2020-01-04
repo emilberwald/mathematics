@@ -3,10 +3,10 @@ import math
 import numpy as np
 import pytest
 
-from mathematics.tools.decorators import timeout
-from mathematics.tools.testing import name_func
+from ..decorators import timeout
+from .. import name_func
 
-from .pointwise_calculus import *
+from mathematics.calculus.pointwise_calculus import *
 
 
 class TestPointwiseCalculus:

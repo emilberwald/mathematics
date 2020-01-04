@@ -2,17 +2,15 @@ import numbers as _numbers
 
 from ..algebra.matrix import Matrix as _Matrix
 from ..algebra.pointwise import Pointwise as _Pointwise
-from ..finite_difference.differential import (
-    directional_derivative as _directional_derivative,
-)
+from ..finite_difference.differential import directional_derivative as _directional_derivative
 
 
 class PointwiseCalculus(_Pointwise):
     @staticmethod
     def KoszulFormula(g, X, Y, Z):
         """
-        g(\nabla_X Y, Z)
-        """
+		g(\nabla_X Y, Z)
+		"""
         return 0.5 * (
             X.derivation(g(Y, Z))
             + Y.derivation(g(X, Z))
@@ -31,23 +29,17 @@ class PointwiseCalculus(_Pointwise):
         # KoszulFormula gives g(\nabla_X Y, Z) ~ <v, u_i>
         gramian = [[g(ei, ej) for j, ej in enumerate(E)] for i, ei in enumerate(E)]
         gramianInverse = _Matrix.inverse(gramian)
-        koszul = [
-            PointwiseCalculus.KoszulFormula(g, X, Y, ei) for i, ei in enumerate(E)
-        ]
+        koszul = [PointwiseCalculus.KoszulFormula(g, X, Y, ei) for i, ei in enumerate(E)]
         return [koszul[i] * ei for i, ei in enumerate(gramianInverse)]
 
     def connection(self, rhs, g, E):
-        return self.derivation()(abs(rhs)) * (rhs / abs(rhs)) + abs(
-            rhs
-        ) * PointwiseCalculus.KoszulExpansion(g, self, rhs / abs(rhs), E)
+        return self.derivation()(abs(rhs)) * (rhs / abs(rhs)) + abs(rhs) * PointwiseCalculus.KoszulExpansion(
+            g, self, rhs / abs(rhs), E
+        )
 
     def torsion(self, rhs, g, E):
         # assert isinstance(rhs, Pointwise)
-        return (
-            self.connection(rhs, g, E)
-            - rhs.connection(self, g, E)
-            - self.commutator(rhs)
-        )
+        return self.connection(rhs, g, E) - rhs.connection(self, g, E) - self.commutator(rhs)
 
     def riemann(self, rhs, g, E):
         # assert isinstance(rhs, Pointwise)
@@ -65,9 +57,7 @@ class PointwiseCalculus(_Pointwise):
     def commutator(self, rhs):
         # assert isinstance(rhs, Pointwise)
         # Maple uses connection here! Something is probably wrong in this formula.
-        return self.derivation().after(rhs.derivation()) - rhs.derivation().after(
-            self.derivation()
-        )
+        return self.derivation().after(rhs.derivation()) - rhs.derivation().after(self.derivation())
 
     def derivation(self):
         return type(self)(_directional_derivative(self))

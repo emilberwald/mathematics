@@ -16,9 +16,7 @@ class GUITextVerdict(QDialog):
     def __init__(self, title, question, return_list):
         super().__init__()
         self.layout = QVBoxLayout(self)
-        self.buttonbox = QDialogButtonBox(
-            QDialogButtonBox.Yes | QDialogButtonBox.No, parent=self
-        )
+        self.buttonbox = QDialogButtonBox(QDialogButtonBox.Yes | QDialogButtonBox.No, parent=self)
         self.textbox = QTextBrowser(parent=self)
         self.setModal(True)
         self.title = title
@@ -55,11 +53,7 @@ def gui_mediaverdict(title, media_file, return_list):
     webbrowser.open_new(media_file)
     _qapp = QApplication([])
     verdict = QMessageBox.question(
-        None,
-        title,
-        "Does it look nice?",
-        QMessageBox.Yes | QMessageBox.No,
-        QMessageBox.Yes,
+        None, title, "Does it look nice?", QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes,
     )
     if verdict == QMessageBox.Yes:
         return_list.append(True)
@@ -71,9 +65,7 @@ def get_textverdict(title, question, timeout=10):
     manager = multiprocessing.Manager()
     return_list = manager.list()
     verdict_process = multiprocessing.Process(
-        name="verdict_process",
-        target=gui_textverdict,
-        args=(title, question, return_list),
+        name="verdict_process", target=gui_textverdict, args=(title, question, return_list),
     )
     verdict_process.start()
     verdict_process.join(timeout)
@@ -84,9 +76,7 @@ def get_mediaverdict(title, media_file, timeout=10):
     manager = multiprocessing.Manager()
     return_list = manager.list()
     verdict_process = multiprocessing.Process(
-        name="verdict_process",
-        target=gui_mediaverdict,
-        args=(title, media_file, return_list),
+        name="verdict_process", target=gui_mediaverdict, args=(title, media_file, return_list),
     )
     verdict_process.start()
     verdict_process.join(timeout)

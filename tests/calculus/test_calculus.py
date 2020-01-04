@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from sympy import Derivative, symbols
 
-from mathematics.tools.decorators import timeout
+from ..decorators import timeout
 
-from .calculus import *
+from mathematics.calculus.calculus import *
 
 
 class TestCurl:

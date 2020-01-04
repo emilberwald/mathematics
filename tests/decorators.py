@@ -13,21 +13,14 @@ def timeout(seconds):
         def wrap(*args, **kwargs):
             q = _queue.Queue()
 
-            t = _threading.Thread(
-                target=thread_function,
-                args=(q, function) + args,
-                kwargs=kwargs,
-                daemon=True,
-            )
+            t = _threading.Thread(target=thread_function, args=(q, function) + args, kwargs=kwargs, daemon=True,)
             start = _time.time()
             t.start()
             try:
                 return q.get(True, seconds)
             except _queue.Empty as e:
                 end = _time.time()
-                raise TimeoutError(
-                    f"TIMEOUT ({seconds}[s] < {end - start}[s]): [{function.__qualname__}]"
-                ) from e
+                raise TimeoutError(f"TIMEOUT ({seconds}[s] < {end - start}[s]): [{function.__qualname__}]") from e
 
         return wrap
 

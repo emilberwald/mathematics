@@ -1,7 +1,7 @@
 from pytest import approx
 
-from mathematics.tools.decorators import timeout
-from .multi_index import *
+from ..decorators import timeout
+from mathematics.notation.multi_index import *
 
 
 class TestMultiIndex:

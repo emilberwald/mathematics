@@ -1,8 +1,8 @@
 import pytest
 
-from mathematics.tools.decorators import timeout
-from mathematics.tools.testing import name_func
-from .ode_step import *
+from ..decorators import timeout
+from .. import name_func
+from mathematics.numerical_methods.ode_step import *
 
 import math
 import numpy as np
@@ -24,9 +24,7 @@ class TestLobattoHardcodedFulfillsConstraints:
         def soft_0(lhs, cmp, rhs):
             return (not cmp(lhs, rhs)) * np.linalg.norm(lhs - rhs)
 
-        butcher_matrix, weights, abscissae = Lobatto.hardcoded_butcher_tableu(
-            order, method
-        )
+        butcher_matrix, weights, abscissae = Lobatto.hardcoded_butcher_tableu(order, method)
         constraints = Lobatto.create_constraint_system(method, soft=soft_0)
         actual = constraints(Lobatto.pack(butcher_matrix, weights, abscissae))
         expected = np.zeros_like(actual)
@@ -50,19 +48,14 @@ class TestLobattoCorrespondenceBetweenMethods:
             *[
                 (order, variant, Lobatto.iiia, Lobatto.iiib)
                 for order in (2, 3, 4)
-                for variant in (
-                    Lobatto.estimate_butcher_tableu,
-                    Lobatto.hardcoded_butcher_tableu,
-                )
+                for variant in (Lobatto.estimate_butcher_tableu, Lobatto.hardcoded_butcher_tableu,)
             ],
         ],
         ids=name_func,
     )
     @timeout(seconds=1.0)
     # order 4, Lobatto.iiia Lobatto.iiib fails because it is too slow
-    def test_correspondence_between_methods(
-        self, order, variant, first_method, second_method
-    ):
+    def test_correspondence_between_methods(self, order, variant, first_method, second_method):
         butcher_matrix_1, weights_1, _ = variant(order, first_method)
         butcher_matrix_2, weights_2, _ = variant(order, second_method)
         nof_dimensions = len(weights_1)
@@ -75,31 +68,22 @@ class TestLobattoCorrespondenceBetweenMethods:
                 # Don't know which interpretation is correct...
                 condition["first"][dimension_i][dimension_j] = (
                     weights_1[dimension_i] * butcher_matrix_2[dimension_i][dimension_j]
-                    + weights_1[dimension_j]
-                    * butcher_matrix_1[dimension_j][dimension_i]
+                    + weights_1[dimension_j] * butcher_matrix_1[dimension_j][dimension_i]
                     - weights_1[dimension_i] * weights_1[dimension_j]
                 )
                 condition["second"][dimension_i][dimension_j] = (
                     weights_2[dimension_i] * butcher_matrix_2[dimension_i][dimension_j]
-                    + weights_2[dimension_j]
-                    * butcher_matrix_1[dimension_j][dimension_i]
+                    + weights_2[dimension_j] * butcher_matrix_1[dimension_j][dimension_i]
                     - weights_2[dimension_i] * weights_2[dimension_j]
                 )
                 condition["neighbor"][dimension_i][dimension_j] = (
                     weights_2[dimension_i] * butcher_matrix_2[dimension_i][dimension_j]
-                    + weights_1[dimension_j]
-                    * butcher_matrix_1[dimension_j][dimension_i]
+                    + weights_1[dimension_j] * butcher_matrix_1[dimension_j][dimension_i]
                     - weights_2[dimension_i] * weights_1[dimension_j]
                 )
-        np.testing.assert_almost_equal(
-            condition["first"], np.zeros((nof_dimensions, nof_dimensions)), decimal=2
-        )
-        np.testing.assert_almost_equal(
-            condition["second"], np.zeros((nof_dimensions, nof_dimensions)), decimal=2
-        )
-        np.testing.assert_almost_equal(
-            condition["neighbor"], np.zeros((nof_dimensions, nof_dimensions)), decimal=2
-        )
+        np.testing.assert_almost_equal(condition["first"], np.zeros((nof_dimensions, nof_dimensions)), decimal=2)
+        np.testing.assert_almost_equal(condition["second"], np.zeros((nof_dimensions, nof_dimensions)), decimal=2)
+        np.testing.assert_almost_equal(condition["neighbor"], np.zeros((nof_dimensions, nof_dimensions)), decimal=2)
 
 
 class TestLobattoEstimateApproximatesHardcoded:
@@ -116,8 +100,7 @@ class TestLobattoEstimateApproximatesHardcoded:
     @timeout(seconds=1.0)
     def test_estimate_approximates_hardcoded(self, order, method):
         for actual, desired in zip(
-            Lobatto.estimate_butcher_tableu(order, method),
-            Lobatto.hardcoded_butcher_tableu(order, method),
+            Lobatto.estimate_butcher_tableu(order, method), Lobatto.hardcoded_butcher_tableu(order, method),
         ):
             np.testing.assert_allclose(actual, desired, atol=1e-2, rtol=1e-2)
 
@@ -125,9 +108,7 @@ class TestLobattoEstimateApproximatesHardcoded:
 class TestRungeKutta:
     @timeout(seconds=1.0)
     def test_implicit_runge_kutta(self):
-        butcher_matrix, weights, abscissae = Lobatto.estimate_butcher_tableu(
-            4, Lobatto.iiic
-        )
+        butcher_matrix, weights, abscissae = Lobatto.estimate_butcher_tableu(4, Lobatto.iiic)
 
         constants = np.hstack((np.random.uniform(-5, 0, 5), np.random.uniform(0, 5, 5)))
         for constant in constants:
@@ -162,22 +143,17 @@ class TestRungeKutta:
                         abscissae,
                     )(delta_t)
                 )
-                independent_variable_evolution.append(
-                    independent_variable_evolution[-1] + delta_t
-                )
+                independent_variable_evolution.append(independent_variable_evolution[-1] + delta_t)
                 expected_dependent_variable_evolution.append(
                     dependent_variable_evolution(independent_variable_evolution[-1])
                 )
-                error_estimate = (
-                    expected_dependent_variable_evolution[-1]
-                    - estimated_dependent_variable_evolution[-1]
-                )
+                error_estimate = expected_dependent_variable_evolution[-1] - estimated_dependent_variable_evolution[-1]
                 np.testing.assert_allclose(
                     estimated_dependent_variable_evolution[-1],
                     expected_dependent_variable_evolution[-1],
                     err_msg=f"""constant={constant} e={error_estimate} h={delta_t} log_h(e)={math.log(
-                        abs(error_estimate if error_estimate else np.nextafter(error_estimate, error_estimate + 1)),
-                        delta_t)}[time={independent_variable_evolution[-1]}, i={i}/{int(max_t / delta_t)}]""",
+						abs(error_estimate if error_estimate else np.nextafter(error_estimate, error_estimate + 1)),
+						delta_t)}[time={independent_variable_evolution[-1]}, i={i}/{int(max_t / delta_t)}]""",
                 )
 
     @timeout(seconds=1.0)
@@ -195,16 +171,7 @@ class TestRungeKutta:
         solution = [1]
         delta_t = 0.025
         for _ in range(0, 4):
-            solution.append(
-                RungeKutta(
-                    function,
-                    times[-1],
-                    solution[-1],
-                    butcher_matrix,
-                    weights,
-                    abscissae,
-                )(delta_t)
-            )
+            solution.append(RungeKutta(function, times[-1], solution[-1], butcher_matrix, weights, abscissae,)(delta_t))
             times.append(times[-1] + delta_t)
         expected_times = [1, 1.025, 1.05, 1.075, 1.1]
         expected_solution = [

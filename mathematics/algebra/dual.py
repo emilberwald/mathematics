@@ -37,15 +37,11 @@ class Dual:
                 return con(cov)
             except:
                 pass
-        raise TypeError(
-            "The default pairing did not work, need to provide a user defined pairing."
-        )
+        raise TypeError("The default pairing did not work, need to provide a user defined pairing.")
 
     @staticmethod
     def standard_base_dual_vectorspace(vector_base, result_type=int):
-        return tuple(
-            Dual(vector_base, result_type, i) for i in range(0, len(vector_base))
-        )
+        return tuple(Dual(vector_base, result_type, i) for i in range(0, len(vector_base)))
 
     @staticmethod
     def standard_base_vectorspace(dimension):

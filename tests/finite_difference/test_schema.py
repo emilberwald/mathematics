@@ -1,15 +1,15 @@
 import numpy as np
 import pytest
 
-from .schema import *
+from mathematics.finite_difference.schema import *
 
 
 class TestStencilPoints:
     def test_one_dimensional(self):
         """
-        Taken from https://en.wikipedia.org/wiki/Finite_difference_coefficient#Arbitrary_stencil_points
-        :return:
-        """
+		Taken from https://en.wikipedia.org/wiki/Finite_difference_coefficient#Arbitrary_stencil_points
+		:return:
+		"""
 
         weights = one_dimensional_schema([-3, -2, -1, 0, 1], 4)
         np.testing.assert_allclose(weights, [1, -4, 6, -4, 1])

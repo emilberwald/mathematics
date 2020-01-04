@@ -15,7 +15,7 @@ class Tensor(dict):
     @staticmethod
     def _merge_keys(*keys):
         r"""Tensor product for pure tensors without coefficients.
-		
+
 		:param keys: each argument is a tensor base vector :math:`\mathsf{e_A} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_A})-1}`
 		:type e_A: [tuple]
 		:return: :math:`\bigotimes_{\mathsf{e_A}\in \textup{base tensors}}\mathsf{e_A} = \bigotimes_{\mathsf{e_A}\in \textup{base tensors}}(\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k)`
@@ -47,14 +47,14 @@ class Tensor(dict):
 		(GUESS) Distributivity of scalar multiplication with respect to tensor addition
 
 		.. math::
-			c_1\cdot(\mathsf{t_1}\otimes \mathsf{t_2} + \mathsf{t_3}\otimes \mathsf{t_4}) = c_1\cdot(\mathsf{t_1}\otimes \mathsf{t_2}) + c_1\cdot(\mathsf{t_3}\otimes \mathsf{t_4}) 
+			c_1\cdot(\mathsf{t_1}\otimes \mathsf{t_2} + \mathsf{t_3}\otimes \mathsf{t_4}) = c_1\cdot(\mathsf{t_1}\otimes \mathsf{t_2}) + c_1\cdot(\mathsf{t_3}\otimes \mathsf{t_4})
 
 		(GUESS) The scalar can be distributed into the coefficient of each pure tensor term.
-		
+
 		:param self: tensor
 		:type self: [tensor]
 		:param scalar: scalar
-		:return: scaled tensor 
+		:return: scaled tensor
 		:rtype: [tensor]
 		"""
 
@@ -80,7 +80,7 @@ class Tensor(dict):
 		:type B: [tensor]
 		:return:
 		.. math::
-			\mathsf{self}+\mathsf{B} 
+			\mathsf{self}+\mathsf{B}
 			= (c_1(\mathsf{{e_1}_i}) \mathsf{{e_1}_i})+(c_2(\mathsf{{e_2}_i}) \mathsf{{e_2}_i})
 			= \left[\sum_{\mathsf{{e_1}_k} \notin \{\mathsf{{e_2}_i}\}} c_1(\mathsf{{e_1}_k}) \mathsf{{e_1}_k}\right]
 			+ \left[\sum_{\mathsf{{e_2}_k} \notin \{\mathsf{{e_1}_i}\}} c_2(\mathsf{{e_2}_k}) \mathsf{{e_2}_k}\right]
@@ -103,9 +103,9 @@ class Tensor(dict):
         return self.__add__(-B)
 
     def __mul__(self, B):
-        r"""Tensor procuct of tensors.
+        r"""Tensor product of tensors.
 		(GUESS) This whole function is guesswork. I think the proper term is unbiased monodial category?
-		
+
 		:param self: tensor
 		:type self: [tensor]
 		:param B: tensor
@@ -115,81 +115,82 @@ class Tensor(dict):
 		"""
         tensor_product = type(self)()
         for self_key, self_value in self.items():
-            for B_key, B_value in B.items():
-                # if (
-                #     isinstance(self_key, _Iterable)
-                #     and isinstance(B_key, _Iterable)
-                #     and any(
-                #         isinstance(lslot, type(self).Counit)
-                #         and rslot == 1
-                #         or isinstance(rslot, type(self).Counit)
-                #         and lslot == 1
-                #         for lslot, rslot in zip(self_key, B_key)
-                #     )
-                # ):
-                #     continue
-                # else:
-                merged_key = type(self)._merge_keys(self_key, B_key)
-                if merged_key not in tensor_product.keys():
-                    tensor_product[merged_key] = self_value * B_value
-                else:
-                    # perhaps this could happen if one of the tensor base vectors are of mixed order?
-                    # GUESS: summation best way to handle this?
-                    tensor_product = tensor_product + type(self)(
-                        {merged_key: self_value * B_value}
-                    )
+            if isinstance(B, type(self)):
+                for B_key, B_value in B.items():
+                    # if (
+                    # 	 isinstance(self_key, _Iterable)
+                    # 	 and isinstance(B_key, _Iterable)
+                    # 	 and any(
+                    # 		 isinstance(lslot, type(self).Counit)
+                    # 		 and rslot == 1
+                    # 		 or isinstance(rslot, type(self).Counit)
+                    # 		 and lslot == 1
+                    # 		 for lslot, rslot in zip(self_key, B_key)
+                    # 	 )
+                    # ):
+                    # 	 continue
+                    # else:
+                    merged_key = type(self)._merge_keys(self_key, B_key)
+                    if merged_key not in tensor_product.keys():
+                        tensor_product[merged_key] = self_value * B_value
+                    else:
+                        # perhaps this could happen if one of the tensor base vectors are of mixed order?
+                        # GUESS: summation best way to handle this?
+                        tensor_product = tensor_product + type(self)({merged_key: self_value * B_value})
+            else:
+                tensor_product = tensor_product + type(self)({type(self)._merge_keys(self_key): self_value * B})
         return tensor_product
 
     # def coproduct(self):
-    #     coprod = type(self)()
-    #     for key, value in self.items():
-    #         coprod = coprod + type(self)({(key, 1): value})
-    #         coprod = coprod + type(self)({(1, key): value})
-    #     return coprod
+    # 	 coprod = type(self)()
+    # 	 for key, value in self.items():
+    # 		 coprod = coprod + type(self)({(key, 1): value})
+    # 		 coprod = coprod + type(self)({(1, key): value})
+    # 	 return coprod
 
     # class Counit:
-    #     def __init__(self):
-    #         pass
+    # 	 def __init__(self):
+    # 		 pass
 
     # def __matmul__(self, other):
-    #     """
-    #     https://en.wikipedia.org/wiki/Tensor_algebra#Coproduct
+    # 	 """
+    # 	 https://en.wikipedia.org/wiki/Tensor_algebra#Coproduct
 
-    #     (... don't really understand it. it seems to juxtapose the inner tensor product over itself ... ?)
-    #     """
-    #     coproduct = type(self)()
-    #     for key_self, value_self in self.items():
-    #         for key_other, value_other in other.items():
-    #             coproduct = coproduct + type(self)(
-    #                 {
-    #                     (
-    #                         type(self)._merge_keys(key_self, key_other),
-    #                         type(self)._merge_keys(1, 1),
-    #                     ): value_self
-    #                     * value_other
-    #                 }
-    #             )
-    #             coproduct = coproduct + type(self)(
-    #                 {(key_self, key_other): value_self * value_other}
-    #             )
-    #             coproduct = coproduct + type(self)(
-    #                 {(key_other, key_self): value_other * value_self}
-    #             )
-    #             coproduct = coproduct + type(self)(
-    #                 {
-    #                     (
-    #                         type(self)._merge_keys(1, 1),
-    #                         type(self)._merge_keys(key_self, key_other),
-    #                     ): value_self
-    #                     * value_other
-    #                 }
-    #             )
-    #     return coproduct
+    # 	 (... don't really understand it. it seems to juxtapose the inner tensor product over itself ... ?)
+    # 	 """
+    # 	 coproduct = type(self)()
+    # 	 for key_self, value_self in self.items():
+    # 		 for key_other, value_other in other.items():
+    # 			 coproduct = coproduct + type(self)(
+    # 				 {
+    # 					 (
+    # 						 type(self)._merge_keys(key_self, key_other),
+    # 						 type(self)._merge_keys(1, 1),
+    # 					 ): value_self
+    # 					 * value_other
+    # 				 }
+    # 			 )
+    # 			 coproduct = coproduct + type(self)(
+    # 				 {(key_self, key_other): value_self * value_other}
+    # 			 )
+    # 			 coproduct = coproduct + type(self)(
+    # 				 {(key_other, key_self): value_other * value_self}
+    # 			 )
+    # 			 coproduct = coproduct + type(self)(
+    # 				 {
+    # 					 (
+    # 						 type(self)._merge_keys(1, 1),
+    # 						 type(self)._merge_keys(key_self, key_other),
+    # 					 ): value_self
+    # 					 * value_other
+    # 				 }
+    # 			 )
+    # 	 return coproduct
 
     def braiding_map(self, slot_permutation):
         """[summary]
 		NOTE: mutates self and returns self (to allow chains)
-		
+
 		:param slot_permutation: [description]
 		:type slot_permutation: [type]
 		:return: [description]
@@ -197,24 +198,21 @@ class Tensor(dict):
 		"""
 
         result = type(self)(
-            {
-                tuple(key[slot_index] for slot_index in slot_permutation): self[key]
-                for key in self.keys()
-            }
+            {tuple(key[slot_index] for slot_index in slot_permutation): self[key] for key in self.keys()}
         )
         self.clear()
         self.update(result)
         return self
 
     def trace(self, first_slot_index, second_slot_index, pairing=None):
-        r"""Trace/contraction of tensor, over vector space indices as indicated in first_slot_index and second_slot_index, 
-		
+        r"""Trace/contraction of tensor, over vector space indices as indicated in first_slot_index and second_slot_index,
+
 		NOTE: Might not work for braided monodial categories since it does not contract until fixpoint (it calls braiding_map though)
 		NOTE: the default pairing tries both cov(con) and con(cov)
-		:param self: 
+		:param self:
 		:type self: tensor
-		:param first_slot_index: index of first vector space in pairing 
-		:param second_slot_index: index of second vector space in pairing 
+		:param first_slot_index: index of first vector space in pairing
+		:param second_slot_index: index of second vector space in pairing
 		:param pairing: :math:`\langle \mathbf{v_1},\mathbf{v_2} \rangle`
 		:return: Contracted tensor.
 		TODO: Write math.
@@ -236,9 +234,7 @@ class Tensor(dict):
             for braided_key in braided_tensor.keys():
                 braided_value = braided_tensor[braided_key]
                 pairing_factor = pairing(*braided_key[0:2])
-                contracted_summand = type(self)(
-                    {braided_key[2:]: braided_value * pairing_factor}
-                )
+                contracted_summand = type(self)({braided_key[2:]: braided_value * pairing_factor})
                 contraction = contraction + contracted_summand
         return contraction
 
@@ -248,12 +244,12 @@ class Tensor(dict):
         r"""Tensor product followed by contraction/trace, adjacent pairs in tensor product
 		NOTE: Does not try to match the orders. It assumes the tensor is not mixed-order in such a way so the operation does not work.
 		NOTE: rank is smallest number of pure tensor terms required. degree/ order is the number of vector spaces taken in the tensor products.
-	
-		:param self: 
+
+		:param self:
 		:type self: [tensor]
-		:param arg: 
+		:param arg:
 		:type arg: [tensor]
-		:return: :math:`\mathsf{self}\otimes \mathsf{arg}`, followed by iterated contraction, 
+		:return: :math:`\mathsf{self}\otimes \mathsf{arg}`, followed by iterated contraction,
 			matching slots by adjacent pairs (last of self, first of arg), until either self or arg is fully contracted
 		:rtype: [tensor]
 		"""
@@ -270,16 +266,14 @@ class Tensor(dict):
     def without_zeros(self, zero_coefficient=0):
         """[summary]
 		NOTE: mutates self and returns self (to allow chains)
-		
+
 		:param zero_coefficient: [description], defaults to 0
 		:param zero_coefficient: int, optional
 		:return: [description]
 		:rtype: [type]
 		"""
 
-        result = type(self)(
-            {key: value for key, value in self.items() if value != zero_coefficient}
-        )
+        result = type(self)({key: value for key, value in self.items() if value != zero_coefficient})
         self.clear()
         self.update(result)
         return result
@@ -294,9 +288,7 @@ class Tensor(dict):
                 r" \cdot ".join(
                     [
                         r"({0})".format(value),
-                        r" \otimes ".join(["{0}".format(v) for v in key])
-                        if key
-                        else r"1",  # scalar 𝟙
+                        r" \otimes ".join(["{0}".format(v) for v in key]) if key else r"1",  # scalar 𝟙
                     ]
                 )
                 for key, value in self.items()
