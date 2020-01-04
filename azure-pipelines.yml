@@ -22,6 +22,12 @@ jobs:
         poetry add --dev --extras pytest-azurepipelines
         poetry run pytest --doctest-modules --junitxml=junit/test-mathematics.xml --cov=mathematics --cov-report=xml --cov-report=html
     displayName: 'pytest'
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/test-*.xml'
+      mergeTestResults: true
+    condition: succeededOrFailed()
   - task: PublishCodeCoverageResults@1
     inputs:
       codeCoverageTool: Cobertura
@@ -52,7 +58,7 @@ jobs:
   strategy:
     matrix:
       Python38:
-        python.version: '3.8.0'
+        python.version: '3.8'
   variables:
       AUTHOR: "Emil Berwald"
       SPHINX_APIDOC_OPTIONS: "members,undoc-members,private-members,special-members,show-inheritance"
@@ -60,8 +66,8 @@ jobs:
   - template: azure-pipelines-dependencies.yml
   - script: |
         ls -latr
-        poetry add --dev --extras sphinx
-        sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" .
+        poetry add --dev sphinx
+        poetry run sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" .
         echo -e '\nextensions.append("sphinx.ext.mathjax")' >> docs/conf.py
         echo -e '\nmathjax_path="MathJax/es5/tex-mml-chtml.js"' >> docs/conf.py
         git clone --depth 1 --branch 3.0.0 https://github.com/mathjax/MathJax.git docs/_static/MathJax
