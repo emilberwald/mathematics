@@ -13,8 +13,8 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python381:
-        python.version: '3.8.1'
+      Python38:
+        python.version: '3.8'
   steps:
   - template: azure-pipelines-dependencies.yml
   - script: |
@@ -32,8 +32,8 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python381:
-        python.version: '3.8.1'
+      Python38:
+        python.version: '3.8'
   steps:
   - template: azure-pipelines-dependencies.yml
   - script: |
@@ -49,8 +49,8 @@ jobs:
     vmImage: 'ubuntu-latest'
   strategy:
     matrix:
-      Python381:
-        python.version: '3.8.1'
+      Python38:
+        python.version: '3.8.0'
   variables:
       AUTHOR: "Emil Berwald"
       SPHINX_APIDOC_OPTIONS: "members,undoc-members,private-members,special-members,show-inheritance"
