@@ -96,7 +96,7 @@ class TestLobattoEstimateApproximatesHardcoded:
         ],
         ids=name_func,
     )
-    @timeout(seconds=1.0)
+    @timeout(seconds=2.0)
     def test_estimate_approximates_hardcoded(self, order, method):
         for actual, desired in zip(
             Lobatto.estimate_butcher_tableu(order, method), Lobatto.hardcoded_butcher_tableu(order, method),
@@ -105,7 +105,7 @@ class TestLobattoEstimateApproximatesHardcoded:
 
 
 class TestRungeKutta:
-    @timeout(seconds=1.0)
+    @timeout(seconds=10.0)
     def test_implicit_runge_kutta(self):
         butcher_matrix, weights, abscissae = Lobatto.estimate_butcher_tableu(4, Lobatto.iiic)
 

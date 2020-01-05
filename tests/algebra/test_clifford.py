@@ -14,7 +14,7 @@ class TestClifford:
     def normalize(clifford):
         return {key: value.expand() for key, value in clifford.items()}
 
-    @timeout(seconds=3)
+    @timeout(seconds=10)
     def test_exterior_algebra_cross_and_triple_product(self):
         # https://en.wikipedia.org/wiki/Exterior_algebra#Cross_and_triple_products
         basis = tuple(sympy.symbols("e_{0:3}"))
@@ -79,7 +79,7 @@ class TestClifford:
             == e1 * e2 * (a * d - b * c)
         )
 
-    @timeout(seconds=1)
+    @timeout(seconds=2)
     def test_quaternions(self):
         # https://en.wikipedia.org/wiki/Clifford_algebra#Quaternions
         basis = tuple(sympy.symbols("e_{0:3}"))
