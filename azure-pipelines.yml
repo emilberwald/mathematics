@@ -19,7 +19,9 @@ jobs:
       - template: azure-pipelines-setup.yml
       - script: |
           ls -latr
-          poetry add --dev --extras pytest-azurepipelines
+          poetry install
+          poetry run pip install pytest-azurepipelines
+          poetry run pip install pytest-cov
           poetry run pytest --doctest-modules --junitxml=junit/test-mathematics.xml --cov=mathematics --cov-report=xml --cov-report=html
         displayName: "pytest"
       - task: PublishTestResults@2
@@ -46,8 +48,8 @@ jobs:
       - template: azure-pipelines-setup.yml
       - script: |
           ls -latr
-          poetry install --no-dev
-          poetry install --dev pylint
+          poetry install
+          poetry run pip install pylint
         displayName: "Install dependencies"
       - script: |
           ls -latr
