@@ -22,6 +22,9 @@ jobs:
           poetry install
           poetry run pip install pytest-azurepipelines
           poetry run pip install pytest-cov
+        displayName: "Install dependencies"
+      - script: |
+          ls -latr
           poetry run pytest --doctest-modules --junitxml=junit/test-mathematics.xml --cov=mathematics --cov-report=xml --cov-report=html
         displayName: "pytest"
       - task: PublishTestResults@2
