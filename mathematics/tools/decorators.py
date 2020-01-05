@@ -1,8 +1,9 @@
-def timeout(seconds):
+def timeout(*, seconds, handler=None):
     import queue as _queue
     import threading as _threading
     import functools as _functools
     import time as _time
+    import warnings as _warnings
 
     def thread_function(q, f, *args, **kwargs):
         ret = f(*args, **kwargs)
@@ -20,7 +21,11 @@ def timeout(seconds):
                 return q.get(True, seconds)
             except _queue.Empty as e:
                 end = _time.time()
-                raise TimeoutError(f"TIMEOUT ({seconds}[s] < {end - start}[s]): [{function.__qualname__}]") from e
+                if handler:
+                    _warnings.warn(f"TIMEOUT ({seconds}[s] < {end - start}[s]): [{function.__qualname__}]")
+                    handler()
+                else:
+                    raise TimeoutError(f"TIMEOUT ({seconds}[s] < {end - start}[s]): [{function.__qualname__}]") from e
 
         return wrap
 

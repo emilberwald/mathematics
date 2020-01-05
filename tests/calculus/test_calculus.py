@@ -9,7 +9,7 @@ from mathematics.calculus.calculus import *
 
 class TestCurl:
     @pytest.mark.skip(reason="[TODO]")
-    @timeout(seconds=1.0)
+    @timeout(handler=lambda: pytest.skip("timeout"), seconds=1.0)
     def test_curl(self):
         tensor = np.array(symbols("A B C"))
 
