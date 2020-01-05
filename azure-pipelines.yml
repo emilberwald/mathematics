@@ -16,7 +16,7 @@ jobs:
       Python38:
         python.version: '3.8'
   steps:
-  - template: azure-pipelines-dependencies.yml
+  - template: azure-pipelines-setup.yml
   - script: |
         ls -latr
         poetry add --dev --extras pytest-azurepipelines
@@ -43,7 +43,12 @@ jobs:
       Python38:
         python.version: '3.8'
   steps:
-  - template: azure-pipelines-dependencies.yml
+  - template: azure-pipelines-setup.yml
+  - script: |
+        ls -latr
+        poetry install --no-dev
+        poetry install --dev pylint
+    displayName: "Install dependencies"
   - script: |
       ls -latr
       poetry run pylint --output-format=json --reports=y mathematics | tee pylint.json
@@ -63,12 +68,17 @@ jobs:
       AUTHOR: "Emil Berwald"
       SPHINX_APIDOC_OPTIONS: "members,undoc-members,private-members,special-members,show-inheritance"
   steps:
-  - template: azure-pipelines-dependencies.yml
+  - template: azure-pipelines-setup.yml
   - script: |
         ls -latr
-        poetry add --dev sphinx
+        poetry install
+        poetry install -E doc
+    displayName: "Install dependencies"
+  - script: |
+        ls -latr
         poetry run sphinx-apidoc --full -a -H "$TeamProject" -A "$AUTHOR" -V "$SourceBranchName" -R "$SourceBranchName.$BuildID" -o "docs" .
         echo -e '\nextensions.append("sphinx.ext.mathjax")' >> docs/conf.py
+        echo -e '\nextensions.append("sphinxcontrib.bibtex")' >> docs/conf.py
         echo -e '\nmathjax_path="MathJax/es5/tex-mml-chtml.js"' >> docs/conf.py
         git clone --depth 1 --branch 3.0.0 https://github.com/mathjax/MathJax.git docs/_static/MathJax
         cd docs

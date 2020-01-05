@@ -2,7 +2,8 @@ import functools as _functools
 import itertools as _itertools
 import operator as _operator
 import collections as _collections
-from typing import List
+import copy as _copy
+from typing import Union, List
 
 from ..number_theory.combinatorics import parity
 
@@ -15,16 +16,17 @@ def flatten(it, skip=(str, bytes)):
             yield el
 
 
-def row_pivoting(f, no):
-    def find_pivot_index(f, no):
-        nof_rows = len(f)
-        for pivot_row_no in range(no, nof_rows):
-            if all(abs(f[pivot_row_no][no]) >= abs(f[row_no][no]) for row_no in range(no, nof_rows)):
-                return pivot_row_no
+def find_row_pivot_no(f, no):
+    nof_rows = len(f)
+    for pivot_row_no in range(no, nof_rows):
+        if all(abs(f[pivot_row_no][no]) >= abs(f[row_no][no]) for row_no in range(no, nof_rows)):
+            return pivot_row_no
 
+
+def row_pivoting(f, no):
     nof_rows = len(f)
     permutation = [[float(row_no == col_no) for col_no in range(0, nof_rows)] for row_no in range(0, nof_rows)]
-    pivot_row = find_pivot_index(f, no)
+    pivot_row = find_row_pivot_no(f, no)
     if pivot_row != no:
         permutation[pivot_row], permutation[no] = permutation[no], permutation[pivot_row]
     return permutation, None
@@ -100,61 +102,94 @@ def reduced_row_echelon(U, no):
 
 
 class Matrix(list):
-    def __init__(self, value: List[List[float]]):
+    def __init__(self, value: List[List[float]], *, deep=True):
+        value = _copy.deepcopy(value) if deep else value
         super().__init__(value)
 
-    def inversed_lower_triangular(self, fx: "Matrix"):
+    @staticmethod
+    def forward_substitution_for_lower_triangular_system(Fconst: List[List[float]], Fx: List[float], n: int):
+        x: List[float] = list()
+        for intra in range(0, n):
+            if Fconst[intra][intra] == 0:
+                raise ValueError("matrix is singular")
+            x.append(Fx[intra] / Fconst[intra][intra])
+            for post in range(intra + 1, n):
+                Fx[post] = Fx[post] - Fconst[post][intra] * x[-1]
+        return x
+
+    @staticmethod
+    def backward_substitution_for_upper_triangular_system(Fconst: List[List[float]], Fx: List[float], n: int):
+        x: List[float] = list()
+        for intra in range(n - 1, -1, -1):
+            if Fconst[intra][intra] == 0:
+                raise ValueError("matrix is singular")
+            x.append(Fx[intra] / Fconst[intra][intra])
+            for pre in range(0, intra):
+                Fx[pre] = Fx[pre] - Fconst[pre][intra] * x[-1]
+        return x
+
+    @staticmethod
+    def diag(*diags):
+        nof_diags = len(diags)
+        return [
+            list(_itertools.chain(range(0, diag_no), (diag,), range(diag_no + 1, nof_diags)))
+            for diag_no, diag in enumerate(diags)
+        ]
+
+    def inversed_lower_triangular(self, selfx: Union["Matrix", List[float]]):
         """
             Forward-Substitution for Lower Triangular System
             :param self:    lower triangular matrix (lhs)
-            :param fx:      column vector (rhs)
-            self^{-1} * fx
+            :param selfx:      column vector (rhs)
+            self^{-1} * selfx
         """
-        x = fx.zero
-        Fx = Matrix(fx)
-        for row_no, col_no in self.indices_diagonal:
-            if Fx[row_no][col_no] == 0:
-                raise ValueError("matrix is singular")
-            x[row_no][0] = Fx[row_no][0] / self[row_no][col_no]
-            for post_no in range(row_no + 1, Fx.nof_rows):
-                Fx[post_no][0] = Fx[post_no][0] - self[post_no][col_no] * x[col_no][0]
-        return x
+        x = Matrix.forward_substitution_for_lower_triangular_system(
+            self, list(flatten(selfx)) if isinstance(selfx, Matrix) else selfx, self.nof_diagonal_elements
+        )
+        return Matrix([x]).transpose if isinstance(selfx, Matrix) else x
 
-    def inversed_upper_triangular(self, fx: "Matrix"):
+    def inversed_upper_triangular(self, selfx: Union["Matrix", List[float]]):
         """
             Back-Substitution for Upper Triangular System
             :param self:    upper triangular matrix (lhs)
             :param fx:      column vector (rhs)
-            self^{-1} * fx
+            self^{-1} * selfx
         """
-        x = fx.zero
-        Fx = Matrix(fx)
-        for col_no in list(self.col_nos)[::-1]:
-            if self[col_no][col_no] == 0:
-                raise ValueError("matrix is singular")
-            x[col_no][0] = Fx[col_no][0] / self[col_no][col_no]
-            for pre_no in range(0, col_no):
-                Fx[pre_no][0] = Fx[pre_no][0] - self[pre_no][col_no] * x[col_no][0]
-        return x
+        x = Matrix.backward_substitution_for_upper_triangular_system(
+            self, list(flatten(selfx)) if isinstance(selfx, Matrix) else selfx, self.nof_diagonal_elements
+        )
+        return Matrix([x]).transpose if isinstance(selfx, Matrix) else x
 
     def gaussian_elimination(self, *, permutation_scheme, elimination_scheme, rescale_scheme):
         """
 
-            https://math.stackexchange.com/a/1398058
-            F x = fx
-            Row operations:
-            R F x = R fx
-            Column operations:
-            F C C^{-1} x = F x
-            Row and column operations:
-            R F C C^{-1} x = R fx
+			https://math.stackexchange.com/a/1398058
 
-            U := R F C
-            returns
-            U, R, C
-            R is None if not used.
-            C is None if not used.
-        """
+			.. math::
+				F x = fx
+
+			Row operations:
+
+			.. math::
+				R F x = R fx
+
+			Column operations:
+
+			.. math::
+				F C C^{-1} x = F x
+
+			Row and column operations:
+
+			.. math::
+				R F C C^{-1} x = R fx
+
+				U := R F C
+
+			returns (U, R, C)
+				- U - upper triangular matrix
+				- R - is None if not used
+				- C - is None if not used
+		"""
 
         U = Matrix(self)
         R = None
@@ -190,6 +225,91 @@ class Matrix(list):
                     U = U @ right_rescale
                     R = right_rescale if R is None else R @ right_rescale
         return U, R, C
+
+    def factor_lu_doolittle(self):
+        L = self.zero
+        U = self.zero
+        for i in range(0, self.nof_diagonal_elements):
+            for j in range(i, self.nof_diagonal_elements):
+                U[i][j] = self[i][j] - sum([L[i][k] * U[k][j] for k in range(0, i)])
+            for j in range(i, self.nof_diagonal_elements):
+                if i == j:
+                    L[i][j] = 1
+                else:
+                    L[j][i] = (self[j][i] - sum([L[j][k] * U[k][i] for k in range(0, i)])) / U[i][i]
+        return L, U
+
+    def factor_lu_crout(self):
+        L = self.zero
+        U = self.zero
+        for i, j in self.diagonal_keys:
+            U[i][j] = 1
+        for i in range(0, self.nof_diagonal_elements):
+            for j in range(i, self.nof_diagonal_elements):
+                L[j][i] = self[j][i] - sum([L[j][k] * U[k][i] for k in range(0, i)])
+            for j in range(i, self.nof_diagonal_elements):
+                if L[i][i] == 0:
+                    raise ValueError("L is singular")
+                else:
+                    U[i][j] = (self[i][j] - sum([L[i][k] * U[k][j] for k in range(0, i)])) / L[i][i]
+        return L, U
+
+    def inversed_lu_factorisation_by_gaussian_elimination_with_partial_pivoting(self, b: Union["Matrix", List[float]]):
+        """
+            :param self:
+                linear transform in
+                    self @ x = b
+            :param x:
+                solution to
+                    self @ x = b
+            :param b:
+                rhs in
+                    self @ x = b
+            :returns:
+                - x     - solution
+                - P     permutation matrix
+                - L     lower triangular matrix
+                - U     upper triangular matrix
+
+            See also :cite:`Heath2002`
+        """
+        LU = Matrix(self)
+        permutation = list(range(0, LU.nof_diagonal_elements))
+        for k in range(0, LU.nof_diagonal_elements - 1):
+            p = find_row_pivot_no(LU, k)
+            if p != k:
+                LU[k], LU[p] = LU[p], LU[k]
+                b[k], b[p] = b[p], b[k]
+                permutation[k], permutation[p] = permutation[p], permutation[k]
+            if LU[k][k] == 0:
+                continue
+            for i in range(k + 1, LU.nof_diagonal_elements):
+                LU[i][k] = LU[i][k] / LU[k][k]
+            for j in range(k + 1, LU.nof_diagonal_elements):
+                for i in range(k + 1, LU.nof_diagonal_elements):
+                    LU[i][j] = LU[i][j] - LU[i][k] * LU[k][j]
+        P = Matrix.diag(*[1 for row in self])
+        P = Matrix([P[i] for i in permutation], deep=False)
+        L = Matrix(
+            [
+                [
+                    LU[row_no][col_no] if col_no < row_no else 1 if col_no == row_no else 0 if col_no > row_no else None
+                    for col_no in LU.col_nos
+                ]
+                for row_no in LU.row_nos
+            ],
+            deep=False,
+        )
+        U = Matrix(
+            [
+                [0 if col_no < row_no else LU[row_no][col_no] if col_no >= row_no else None for col_no in LU.col_nos]
+                for row_no in LU.row_nos
+            ],
+            deep=False,
+        )
+        y = L.inversed_lower_triangular(b)
+        x = U.inversed_upper_triangular(y)
+        return x, P, L, U
 
     def inversed(self, fx, *, methods):
         if any(
@@ -235,7 +355,7 @@ class Matrix(list):
         yield from range(0, self.nof_cols)
 
     @property
-    def indices_diagonal(self):
+    def diagonal_keys(self):
         for diag_no in self.nof_diagonal_elements:
             yield (diag_no, diag_no)
 

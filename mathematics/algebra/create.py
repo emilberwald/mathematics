@@ -26,8 +26,8 @@ def multilinear_mapping_as_tensor(cls, slot_to_dual, *bases):
 	Expands multilinear function as tensor.
 	NOTE: not sure if the math is valid for vector valued multilinear mappings.
 
-	:param: slots_to_dual:  Converts a (basis-)vector to its corresponding dual
-	:param: *bases:		 tuple where each element is an ordered basis.
+	:param slot_to_dual:	Converts a (basis-)vector to its corresponding dual
+	:param *bases:			tuple where each element is an ordered basis.
 							Each ordered basis appears in same order as in the function call.
 	:return:				Returns a lambda with domain over (scalar or vector-valued-)multilinear functions.
 
@@ -96,22 +96,22 @@ def make_symbol(symbol, basis, dual_basis, tensor_base):
 
 def mixed_tensor(cls, symbol, basis, order, slot_to_dual):
     """
-	:param cls:
-	:param symbol:		  Example: "A"
-	:param basis:		   Contravariant basis
-							Examples:
-								sympy.symbols("e_{0:3}")
-								standard_base_vectorspace(dimension)
-	:param order:		   (contravariant order, covariant order)
-	:param slot_to_dual:	maps vector basis base to dual vector basis base
-	:return: [description]
+		:param cls:
+		:param symbol:	Example: "A"
+		:param basis:	Contravariant basis
+						Examples:
+						.. code-block:: python
+							sympy.symbols("e_{0:3}")
+							standard_base_vectorspace(dimension)
+		:param order:			(contravariant order, covariant order)
+		:param slot_to_dual:	maps vector basis base to dual vector basis base
+		:return: [description]
 
-	A change of scale from meters to smaller unit...
-		*contravariant* vector (component bigger, base shorter)
-			ex: velocity			(distance/time)
-		*covariant* vector base (component smaller, base longer)
-			ex: spatial gradient	(1/distance)
-
+		A change of scale from meters to smaller unit...
+			*contravariant* vector (component bigger, base shorter)
+				ex: velocity			(distance/time)
+			*covariant* vector base (component smaller, base longer)
+				ex: spatial gradient	(1/distance)
 	"""
 
     contravariant_order, covariant_order = order

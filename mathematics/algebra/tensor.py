@@ -18,7 +18,7 @@ class Tensor(dict):
 
 		:param keys: each argument is a tensor base vector :math:`\mathsf{e_A} = \mathbf{e}_0\otimes\ldots\otimes \mathbf{e}_{order(\mathsf{e_A})-1}`
 		:type e_A: [tuple]
-		:return: :math:`\bigotimes_{\mathsf{e_A}\in \textup{base tensors}}\mathsf{e_A} = \bigotimes_{\mathsf{e_A}\in \textup{base tensors}}(\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k)`
+		:return: :math:`\bigotimes_{\mathsf{e_A}\in \mathrm{base tensors}}\mathsf{e_A} = \bigotimes_{\mathsf{e_A}\in \mathrm{base tensors}}(\bigotimes_{\mathbf{e}_k\in \mathsf{e_A}} \mathbf{e}_k)`
 		:rtype: [tuple]
 		"""
         merged_key = list()
@@ -208,14 +208,18 @@ class Tensor(dict):
         r"""Trace/contraction of tensor, over vector space indices as indicated in first_slot_index and second_slot_index,
 
 		NOTE: Might not work for braided monodial categories since it does not contract until fixpoint (it calls braiding_map though)
+
 		NOTE: the default pairing tries both cov(con) and con(cov)
+
 		:param self:
 		:type self: tensor
 		:param first_slot_index: index of first vector space in pairing
 		:param second_slot_index: index of second vector space in pairing
 		:param pairing: :math:`\langle \mathbf{v_1},\mathbf{v_2} \rangle`
 		:return: Contracted tensor.
+
 		TODO: Write math.
+
 		:rtype: [tensor]
 		"""
         pairing = _Dual.default_pairing if pairing is None else pairing
@@ -242,7 +246,9 @@ class Tensor(dict):
 
     def __call__(self, arg):
         r"""Tensor product followed by contraction/trace, adjacent pairs in tensor product
+
 		NOTE: Does not try to match the orders. It assumes the tensor is not mixed-order in such a way so the operation does not work.
+
 		NOTE: rank is smallest number of pure tensor terms required. degree/ order is the number of vector spaces taken in the tensor products.
 
 		:param self:
@@ -264,7 +270,7 @@ class Tensor(dict):
     # region simplification
 
     def without_zeros(self, zero_coefficient=0):
-        """[summary]
+        """
 		NOTE: mutates self and returns self (to allow chains)
 
 		:param zero_coefficient: [description], defaults to 0
