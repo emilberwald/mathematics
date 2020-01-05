@@ -79,7 +79,7 @@ class TestClifford:
             == e1 * e2 * (a * d - b * c)
         )
 
-    @timeout(seconds=2)
+    @timeout(seconds=5)
     def test_quaternions(self):
         # https://en.wikipedia.org/wiki/Clifford_algebra#Quaternions
         basis = tuple(sympy.symbols("e_{0:3}"))
