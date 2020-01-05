@@ -96,7 +96,7 @@ class TestLobattoEstimateApproximatesHardcoded:
         ],
         ids=name_func,
     )
-    @timeout(seconds=2.0)
+    @timeout(seconds=5.0)
     def test_estimate_approximates_hardcoded(self, order, method):
         for actual, desired in zip(
             Lobatto.estimate_butcher_tableu(order, method), Lobatto.hardcoded_butcher_tableu(order, method),
