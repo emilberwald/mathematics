@@ -11,6 +11,10 @@ def pytest_addoption(parser):
     )
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: only slow tests (only non-slow by default)")
+
+
 def pytest_collection_modifyitems(config, items):
     slow_toggle = bool(config.getoption("--slow"))
     lock = RLock()
