@@ -28,7 +28,10 @@ def row_pivoting(f, no):
     permutation = [[float(row_no == col_no) for col_no in range(0, nof_rows)] for row_no in range(0, nof_rows)]
     pivot_row = find_row_pivot_no(f, no)
     if pivot_row != no:
-        permutation[pivot_row], permutation[no] = permutation[no], permutation[pivot_row]
+        permutation[pivot_row], permutation[no] = (
+            permutation[no],
+            permutation[pivot_row],
+        )
     return permutation, None
 
 
@@ -50,7 +53,10 @@ def complete_pivoting(f, no):
         left_permutation[pivot_row],
     )
 
-    right_permutation[pivot_col], right_permutation[no] = right_permutation[no], right_permutation[pivot_col]
+    right_permutation[pivot_col], right_permutation[no] = (
+        right_permutation[no],
+        right_permutation[pivot_col],
+    )
 
     return left_permutation, right_permutation
 
@@ -144,7 +150,7 @@ class Matrix(list):
             self^{-1} * selfx
         """
         x = Matrix.forward_substitution_for_lower_triangular_system(
-            self, list(flatten(selfx)) if isinstance(selfx, Matrix) else selfx, self.nof_diagonal_elements
+            self, list(flatten(selfx)) if isinstance(selfx, Matrix) else selfx, self.nof_diagonal_elements,
         )
         return Matrix([x]).transpose if isinstance(selfx, Matrix) else x
 
@@ -156,7 +162,7 @@ class Matrix(list):
             self^{-1} * selfx
         """
         x = Matrix.backward_substitution_for_upper_triangular_system(
-            self, list(flatten(selfx)) if isinstance(selfx, Matrix) else selfx, self.nof_diagonal_elements
+            self, list(flatten(selfx)) if isinstance(selfx, Matrix) else selfx, self.nof_diagonal_elements,
         )
         return Matrix([x]).transpose if isinstance(selfx, Matrix) else x
 
@@ -314,7 +320,7 @@ class Matrix(list):
     def inversed(self, fx, *, methods):
         if any(
             method
-            in (self.gaussian_elimination, row_pivoting, complete_pivoting, doolittle_scheme, gauss_jordan_scheme)
+            in (self.gaussian_elimination, row_pivoting, complete_pivoting, doolittle_scheme, gauss_jordan_scheme,)
             for method in methods
         ):
             permutation_scheme = complete_pivoting if complete_pivoting in methods else row_pivoting

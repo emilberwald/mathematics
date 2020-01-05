@@ -17,10 +17,10 @@ class Test2:
         x = f.inversed(fx, methods=(arg for arg in (permutation_scheme, elimination_scheme) if arg))
         assert x == [-1.0, 3.0, -1.0]
 
-    def test_inversed_lu_factorisation_by_gaussian_elimination_with_partial_pivoting(self):
+    def test_inversed_lu_factorisation_by_gaussian_elimination_with_partial_pivoting(self,):
         f = Matrix([[1.0, 2.0, 2.0], [4.0, 4.0, 2.0], [4.0, 6.0, 4.0]])
         fx = [3.0, 6.0, 10.0]
-        x, P, L, U = f.inversed_lu_factorisation_by_gaussian_elimination_with_partial_pivoting(fx)
+        (x, P, L, U,) = f.inversed_lu_factorisation_by_gaussian_elimination_with_partial_pivoting(fx)
         assert x == [-1.0, 3.0, -1.0]
 
 
