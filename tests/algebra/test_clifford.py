@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from mathematics.algebra.create import *
+from mathematics.tools.decorators import timeout
 
 
 class TestClifford:
@@ -13,7 +14,7 @@ class TestClifford:
     def normalize(clifford):
         return {key: value.expand() for key, value in clifford.items()}
 
-    @pytest.mark.timeout(3)
+    @timeout(seconds=3)
     def test_exterior_algebra_cross_and_triple_product(self):
         # https://en.wikipedia.org/wiki/Exterior_algebra#Cross_and_triple_products
         basis = tuple(sympy.symbols("e_{0:3}"))
@@ -48,7 +49,7 @@ class TestClifford:
         assert len(lhs) == len(rhs) == 1
         assert lhs == rhs
 
-    # @pytest.mark.timeout(1)
+    # @timeout(seconds=1)
     def test_exterior_algebra_areas_in_the_plane(self):
         # https://en.wikipedia.org/wiki/Exterior_algebra#Areas_in_the_plane
         basis = tuple(sympy.symbols("e_{0:3}"))
@@ -78,7 +79,7 @@ class TestClifford:
             == e1 * e2 * (a * d - b * c)
         )
 
-    @pytest.mark.timeout(1)
+    @timeout(seconds=1)
     def test_quaternions(self):
         # https://en.wikipedia.org/wiki/Clifford_algebra#Quaternions
         basis = tuple(sympy.symbols("e_{0:3}"))

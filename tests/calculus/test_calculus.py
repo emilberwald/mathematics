@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from sympy import Derivative, symbols
 
-from ..decorators import timeout
+from mathematics.tools.decorators import timeout
 
 from mathematics.calculus.calculus import *
 

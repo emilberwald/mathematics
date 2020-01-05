@@ -1,6 +1,6 @@
 import pytest
 
-from ..decorators import timeout
+from mathematics.tools.decorators import timeout
 from .. import name_func
 from mathematics.numerical_methods.ode_step import *
 
@@ -54,7 +54,6 @@ class TestLobattoCorrespondenceBetweenMethods:
         ids=name_func,
     )
     @timeout(seconds=1.0)
-    # order 4, Lobatto.iiia Lobatto.iiib fails because it is too slow
     def test_correspondence_between_methods(self, order, variant, first_method, second_method):
         butcher_matrix_1, weights_1, _ = variant(order, first_method)
         butcher_matrix_2, weights_2, _ = variant(order, second_method)

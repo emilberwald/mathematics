@@ -5,10 +5,11 @@ import pytest
 
 from mathematics.algebra.tensor import *
 from mathematics.algebra.create import *
+from mathematics.tools.decorators import timeout
 
 
 class TestTensor:
-    @pytest.mark.timeout(1)
+    @timeout(seconds=1)
     def test_tensor(self):
         basis = tuple(sympy.symbols("e_{0:3}"))
         dual_basis = tuple(sympy.symbols("e^{0:3}"))

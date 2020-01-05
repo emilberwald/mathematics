@@ -1,6 +1,6 @@
 from pytest import approx
 
-from ..decorators import timeout
+from mathematics.tools.decorators import timeout
 from mathematics.notation.multi_index import *
 
 

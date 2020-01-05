@@ -4,6 +4,7 @@ Functionality for stepping forward in dynamical systems.
 
 import math as _math
 import operator as _operator
+import warnings as _warnings
 
 import numpy as _np
 import scipy as _sp
@@ -311,7 +312,8 @@ class Lobatto:
             if converged_0 and converged_min and quality_0 and quality_min:
                 return saved_0 if quality_0 < quality_min else saved_min
             else:
-                return None
+                _warnings.warn("estimate_butcher_tableu did not converge.")
+                return saved_0 if saved_0 else saved_min if saved_min else None
 
     @classmethod
     def hardcoded_butcher_tableu(cls, order, identifier):

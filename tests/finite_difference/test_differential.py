@@ -5,7 +5,7 @@ import pytest
 
 from mathematics.finite_difference.differential import *
 from mathematics.finite_difference.differential import _finite_forward_difference, _flow
-from ..decorators import timeout
+from mathematics.tools.decorators import timeout
 
 from .. import name_func
 

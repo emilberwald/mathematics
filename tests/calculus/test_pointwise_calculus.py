@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from ..decorators import timeout
+from mathematics.tools.decorators import timeout
 from .. import name_func
 
 from mathematics.calculus.pointwise_calculus import *

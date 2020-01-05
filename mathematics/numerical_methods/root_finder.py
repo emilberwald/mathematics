@@ -1,5 +1,4 @@
-"""[summary]
-
+r"""
 Residual
 	$R(u_k) \neq 0$
 	We want to have:
