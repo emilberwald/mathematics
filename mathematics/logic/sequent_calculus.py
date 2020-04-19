@@ -6,9 +6,13 @@ class PredicateLogicSymbols:
     NOT = "¬"
     AND = "∧"
     OR = "∨"
+    IMPLIES = "→"
     FORALL = "∀"
     EXISTS = "∃"
 
+class MetaSymbols:
+    ENTAILS_SYNTACTICALLY = "⊢"
+    ENTAILS_SEMANTICALLY = "⊨" # with respect to interpretations
 
 @dataclasses.dataclass(frozen=True)
 class Term:
@@ -104,7 +108,7 @@ class Sequent:
     def __str__(self):
         return (
             ",".join(["'" + str(wff) + "'" for wff in self.antecedents])
-            + "⊢"
+            + MetaSymbols.ENTAILS_SYNTACTICALLY
             + ",".join(["'" + str(wff) + "'" for wff in self.consequents])
         )
 
@@ -155,7 +159,8 @@ class InferenceRules:
     def l_and_l_formula(sequent: Sequent, formula: Formula):
         """∧L1"""
         return Sequent(
-            antecedents=tuple(sequent.antecedents[:-1]) + (LogicFormula("∧", (sequent.antecedents[-1], formula,)),),
+            antecedents=tuple(sequent.antecedents[:-1])
+            + (LogicFormula(PredicateLogicSymbols.AND, (sequent.antecedents[-1], formula,)),),
             consequents=sequent.consequents,
         )
 
@@ -163,7 +168,8 @@ class InferenceRules:
     def l_and_formula_l(sequent: Sequent, formula: Formula):
         """∧L2"""
         return Sequent(
-            antecedents=tuple(sequent.antecedents[:-1]) + (LogicFormula("∧", (formula, sequent.antecedents[-1],)),),
+            antecedents=tuple(sequent.antecedents[:-1])
+            + (LogicFormula(PredicateLogicSymbols.AND, (formula, sequent.antecedents[-1],)),),
             consequents=sequent.consequents,
         )
 
@@ -172,7 +178,8 @@ class InferenceRules:
         """∨R1"""
         return Sequent(
             antecedents=sequent.antecedents,
-            consequents=(LogicFormula("∨", (formula, sequent.consequents[0],)),) + tuple(sequent.consequents[1:]),
+            consequents=(LogicFormula(PredicateLogicSymbols.OR, (formula, sequent.consequents[0],)),)
+            + tuple(sequent.consequents[1:]),
         )
 
     @staticmethod
@@ -180,7 +187,8 @@ class InferenceRules:
         """∨R1"""
         return Sequent(
             antecedents=sequent.antecedents,
-            consequents=(LogicFormula("∨", (sequent.consequents[0], formula,)),) + tuple(sequent.consequents[1:]),
+            consequents=(LogicFormula(PredicateLogicSymbols.OR, (sequent.consequents[0], formula,)),)
+            + tuple(sequent.consequents[1:]),
         )
 
     @staticmethod
@@ -189,7 +197,7 @@ class InferenceRules:
         return Sequent(
             antecedents=tuple(lhs.antecedents[:-1])
             + tuple(rhs.antecedents[:-1])
-            + (LogicFormula("∨", (lhs.antecedents[-1], rhs.antecedents[-1],)),),
+            + (LogicFormula(PredicateLogicSymbols.OR, (lhs.antecedents[-1], rhs.antecedents[-1],)),),
             consequents=lhs.consequents + rhs.consequents,
         )
 
@@ -198,7 +206,7 @@ class InferenceRules:
         """∧R"""
         return Sequent(
             antecedents=lhs.antecedents + rhs.antecedents,
-            consequents=(LogicFormula("∧", (lhs.consequents[0], rhs.consequents[0],)),)
+            consequents=(LogicFormula(PredicateLogicSymbols.AND, (lhs.consequents[0], rhs.consequents[0],)),)
             + tuple(lhs.consequents[1:])
             + tuple(rhs.consequents[1:]),
         )
@@ -209,7 +217,7 @@ class InferenceRules:
         return Sequent(
             antecedents=tuple(lhs.antecedents[:-1])
             + tuple(rhs.antecedents[:-1])
-            + (LogicFormula("→", (lhs.antecedents[-1], rhs.antecedents[-1],)),),
+            + (LogicFormula(PredicateLogicSymbols.IMPLIES, (lhs.antecedents[-1], rhs.antecedents[-1],)),),
             consequents=lhs.consequents + rhs.consequents,
         )
 
@@ -218,7 +226,9 @@ class InferenceRules:
         """→R"""
         return Sequent(
             antecedents=tuple(sequent.antecedents[:-1]),
-            consequents=(LogicFormula("→", (sequent.antecedents[-1], sequent.consequents[0],)),)
+            consequents=(
+                LogicFormula(PredicateLogicSymbols.IMPLIES, (sequent.antecedents[-1], sequent.consequents[0],)),
+            )
             + tuple(sequent.consequents[1:]),
         )
 
@@ -229,7 +239,7 @@ class InferenceRules:
             (crosses side right -> left)
         """
         return Sequent(
-            antecedents=sequent.antecedents + (LogicFormula("¬", (sequent.consequents[0],)),),
+            antecedents=sequent.antecedents + (LogicFormula(PredicateLogicSymbols.NOT, (sequent.consequents[0],)),),
             consequents=tuple(sequent.consequents[1:]),
         )
 
@@ -241,7 +251,7 @@ class InferenceRules:
         """
         return Sequent(
             antecedents=tuple(sequent.antecedents[:-1]),
-            consequents=(LogicFormula("¬", (sequent.antecedents[-1],)),) + sequent.consequents,
+            consequents=(LogicFormula(PredicateLogicSymbols.NOT, (sequent.antecedents[-1],)),) + sequent.consequents,
         )
 
     @staticmethod
@@ -285,7 +295,7 @@ class InferenceRules:
             ∃L
             Existential Generalisation
         """
-        return InferenceRules.l_binding(sequent, "∃", variable)
+        return InferenceRules.l_binding(sequent, PredicateLogicSymbols.EXISTS, variable)
 
     @staticmethod
     def l_forall(sequent: Sequent, variable: Variable):
@@ -293,7 +303,7 @@ class InferenceRules:
             ∀L
             Universal Generalisation
         """
-        return InferenceRules.l_binding(sequent, "∀", variable)
+        return InferenceRules.l_binding(sequent, PredicateLogicSymbols.FORALL, variable)
 
     @staticmethod
     def r_exists(sequent: Sequent, variable: Variable):
@@ -301,7 +311,7 @@ class InferenceRules:
             ∃L
             Existential Generalisation
         """
-        return InferenceRules.r_binding(sequent, "∃", variable)
+        return InferenceRules.r_binding(sequent, PredicateLogicSymbols.EXISTS, variable)
 
     @staticmethod
     def r_forall(sequent: Sequent, variable: Variable):
@@ -309,4 +319,4 @@ class InferenceRules:
             ∀L
             Universal Generalisation
         """
-        return InferenceRules.r_binding(sequent, "∀", variable)
+        return InferenceRules.r_binding(sequent, PredicateLogicSymbols.FORALL, variable)
