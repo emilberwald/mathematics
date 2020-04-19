@@ -69,6 +69,8 @@ A variable binding operator such as the existential and universal quantifiers bi
 'A','B': wffs
 L,R : *sequence of wffs (0 or more)
 'A'['t'/'x'] replace every free occurence of 'x' with 't' in A, with the restriction that no occurence of any variable in 't' becomes bound in 'A'['t'/'x']
+NOTE: A[t/x] (t instead of x) is also written A[x←t]
+
 W: Weakening, C: Contraction, P: Permutation
 
 Introduce:
@@ -87,15 +89,23 @@ Rewrite left side:
 - ∧L1	( L1,'A',⊢,R1 ) ↦ ( L1,'A∧B',⊢,R1 )
 - ∧L2	( L1,'B',⊢,R1 ) ↦ ( L1,'A∧B',⊢,R1 )
 - ∀L 	( L1,'A'['t'/'x'],⊢,R1 ) ↦ ( L1,'∀xA',⊢,R1 )
+   - 'x' is free in 'A', it is called the eigenvariable
+   - 't' no occurence of any variable in 't' becomes bound after substitution
 - ∃L 	( L1,'A'['y'/'x'],⊢,R1 ) ↦ ( L1,'∃xA',⊢,R1 )
-  - 'y' must not occur free anywhere in the transformed sequent
+  - 'x' is free in 'A', it is called the eigenvariable
+  - 'y' no occurence of 'y' becomes bound after substitution
+  - 'y' must not occur free anywhere in the lower sequents
 - WL 	( L1,⊢,R1 ) ↦ ( L1,'A',⊢,R1 )
 Rewrite right side:
 - ∨R1 	( L1,⊢,'A',R1 ) ↦ ( L1,⊢,'A∨B',R1 )
 - ∨R2 	( L1,⊢,'B',R1 ) ↦ ( L1,⊢,'A∨B',R1 )
 - ∃R 	( L1,⊢,'A'['t'/'x'],R1 ) ↦ ( L1,⊢,'∃xA',R1 )
+   - 'x' is free in 'A', it is called the eigenvariable
+   - 't' no occurence of any variable in 't' becomes bound after substitution
 - ∀R 	( L1,⊢,'A'['y'/'x'],R1 ) ↦ ( L1,⊢,'∀xA',R1 )
-   - 'y' must not occur free anywhere in the transformed sequent
+   - 'x' is free in 'A', it is called the eigenvariable
+   - 'y' no occurence of 'y' becomes bound after substitution
+   - 'y' must not occur free anywhere in the transformed/lower sequents
 - WR 	( L1,⊢,R1 ) ↦ ( L1,⊢,'A',R1 )
 Contract:
 - CL 	( L1,'A','A',⊢,R1 ) ↦ ( L1,'A',⊢,R1 )
