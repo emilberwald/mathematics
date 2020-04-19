@@ -19,6 +19,9 @@ class Term:
 class Variable(Term):
     identifier: str
 
+    def __str__(self):
+        return f"{self.identifier}"
+
 
 @dataclasses.dataclass(frozen=True)
 class FunctionSymbol(Term):
@@ -31,10 +34,10 @@ class FunctionSymbol(Term):
 
 @dataclasses.dataclass(frozen=True)
 class Formula:
-    identifier: str
+    symbol: str
 
     def __str__(self):
-        return self.identifier
+        return self.symbol
 
     def substitute(self, original, substitute):
         return self
@@ -45,11 +48,11 @@ class Formula:
 
 @dataclasses.dataclass(frozen=True)
 class AtomicFormula(Formula):
-    identifier: str
+    symbol: str
     terms: Tuple[Term, ...]
 
     def __str__(self):
-        return f"{self.identifier}[{','.join([str(arg) for arg in self.terms])}]"
+        return f"{self.symbol}[{','.join([str(arg) for arg in self.terms])}]"
 
     def substitute(self, original, substitute):
         return dataclasses.replace(self, terms=[substitute if term == original else term for term in self.terms])
@@ -57,11 +60,11 @@ class AtomicFormula(Formula):
 
 @dataclasses.dataclass(frozen=True)
 class LogicFormula(Formula):
-    identifier: str
+    symbol: str
     formulas: Tuple[Formula, ...]
 
     def __str__(self):
-        return f"{self.identifier}⟦{','.join([str(arg) for arg in self.formulas])}⟧"
+        return f"{self.symbol}⟦{','.join([str(arg) for arg in self.formulas])}⟧"
 
     def substitute(self, original, substitute):
         return dataclasses.replace(
@@ -74,7 +77,7 @@ class LogicFormula(Formula):
 
 @dataclasses.dataclass(frozen=True)
 class BindingFormula(Formula):
-    identifier: str
+    symbol: str
     binding: Variable
     formulas: Tuple[Formula, ...]
 
@@ -90,7 +93,7 @@ class BindingFormula(Formula):
         return all(wff.is_free(term) for wff in self.formulas)
 
     def __str__(self):
-        return f"{self.identifier}⟨{self.binding}|{','.join([str(arg) for arg in self.formulas])}⟩"
+        return f"{self.symbol}⟨{self.binding}|{','.join([str(arg) for arg in self.formulas])}⟩"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -115,7 +118,7 @@ class InferenceRules:
     def cut(lhs: Sequent, rhs: Sequent):
         common = set(lhs.consequents) & set(rhs.antecedents)
         if not common:
-            raise ValueError(f"Cut({lhs,rhs}) N/A")
+            raise ValueError("cut N/A")
 
         return Sequent(
             antecedents=lhs.antecedents + tuple(wff for wff in rhs.antecedents if wff not in common),
@@ -136,15 +139,15 @@ class InferenceRules:
 
     @staticmethod
     def l_permute(sequent: Sequent, permutation):
-        if len(permutation) != len(set(permutation)) or len(set(permutation)) != len(sequent.antecedents):
-            raise ValueError(f"PermuteL({sequent},{permutation}) N/A")
+        if set(permutation) != set(range(len(sequent.antecedents))):
+            raise ValueError("l_permute N/A")
 
         return Sequent(tuple(sequent.antecedents[i] for i in permutation), sequent.consequents)
 
     @staticmethod
     def r_permute(sequent: Sequent, permutation):
-        if len(permutation) != len(set(permutation)) or len(set(permutation)) != len(sequent.consequents):
-            raise ValueError(f"PermuteL({sequent},{permutation}) N/A")
+        if set(permutation) != set(range(len(sequent.consequents))):
+            raise ValueError("r_permute N/A")
 
         return Sequent(sequent.antecedents, tuple(sequent.consequents[i] for i in permutation))
 
@@ -255,7 +258,7 @@ class InferenceRules:
         # Is this correct?
         # Why is the substitution on the upper part in the inference rules?
         if not sequent.antecedents[-1].is_free(variable):
-            raise ValueError(f"BindingL({sequent},{symbol},{variable}) N/A")
+            raise ValueError("l_binding N/A")
 
         return Sequent(
             antecedents=tuple(sequent.antecedents[:-1])
@@ -269,7 +272,7 @@ class InferenceRules:
         # Is this correct?
         # Why is the substitution on the upper part in the inference rules?
         if not sequent.consequents[0].is_free(variable):
-            raise ValueError(f"BindingR({sequent},{symbol},{variable}) N/A")
+            raise ValueError("r_binding N/A")
 
         return Sequent(
             antecedents=sequent.antecedents,
@@ -277,21 +280,33 @@ class InferenceRules:
         )
 
     @staticmethod
-    def l_existential_generalisation(sequent: Sequent, variable: Variable):
-        """∃L"""
+    def l_exists(sequent: Sequent, variable: Variable):
+        """
+            ∃L
+            Existential Generalisation
+        """
         return InferenceRules.l_binding(sequent, "∃", variable)
 
     @staticmethod
-    def l_universal_generalisation(sequent: Sequent, variable: Variable):
-        """∀L"""
+    def l_forall(sequent: Sequent, variable: Variable):
+        """
+            ∀L
+            Universal Generalisation
+        """
         return InferenceRules.l_binding(sequent, "∀", variable)
 
     @staticmethod
-    def r_existential_generalisation(sequent: Sequent, variable: Variable):
-        """∃R"""
+    def r_exists(sequent: Sequent, variable: Variable):
+        """
+            ∃L
+            Existential Generalisation
+        """
         return InferenceRules.r_binding(sequent, "∃", variable)
 
     @staticmethod
-    def r_universal_generalisation(sequent: Sequent, variable: Variable):
-        """∀R"""
+    def r_forall(sequent: Sequent, variable: Variable):
+        """
+            ∀L
+            Universal Generalisation
+        """
         return InferenceRules.r_binding(sequent, "∀", variable)
