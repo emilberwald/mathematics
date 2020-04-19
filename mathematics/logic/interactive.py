@@ -64,13 +64,13 @@ def get_formulas():
                     continue
                 included: Sequence[Term] = list()
                 for term in terms:
-                    if input(f"<Enter> to include '{term}'"):
+                    if get_optional(f"<Enter> to ignore\t'{term}'"):
                         included.append(term)
                 terms = [term for term in terms if term not in included]
                 formulas.append(AtomicFormula(connective, tuple(included)))
                 break
         elif command == "l":
-            while op := get_required(f"{'|'.join(e for e in PredicateLogicSymbols)}").upper():
+            while op := get_required(f"{'|'.join(e.name.upper() for e in PredicateLogicSymbols)}").upper():
                 if op in (symbol.name.upper() for symbol in PredicateLogicSymbols):
                     connective = PredicateLogicSymbols[op].value
                 else:
@@ -78,13 +78,13 @@ def get_formulas():
                     continue
                 included: Sequence[Formula] = list()
                 for formula in formulas:
-                    if get_optional(f"<Enter> to include '{formula}'"):
+                    if get_optional(f"<Enter> to ignore:\t'{formula}'"):
                         included.append(formula)
                 formulas = [formula for formula in formulas if formula not in included]
                 formulas.append(LogicFormula(connective, tuple(included)))
                 break
         elif command == "b":
-            while op := get_required(f"{'|'.join(e for e in QuantifierSymbols)}|...").upper():
+            while op := get_required(f"{'|'.join(e.name.upper() for e in QuantifierSymbols)}|...").upper():
                 if op in (symbol.name.upper() for symbol in QuantifierSymbols):
                     connective = QuantifierSymbols[connective].value
                 elif op in (symbol.name for symbol in PredicateLogicSymbols):
@@ -95,7 +95,7 @@ def get_formulas():
 
                 included: Sequence[Formula] = list()
                 for formula in formulas:
-                    if input(f"<Enter> to include:\t{formula}"):
+                    if get_optional(f"<Enter> to ignore:\t'{formula}'"):
                         included.append(formula)
 
                 while True:
