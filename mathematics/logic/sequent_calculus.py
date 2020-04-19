@@ -1,18 +1,37 @@
 import dataclasses
 from typing import Any, Tuple
+from enum import Enum
 
 
-class PredicateLogicSymbols:
+class PropositionalLogicSymbols(Enum):
+    TRUE = "⊤"
+    FALSE = "⊥"
     NOT = "¬"
     AND = "∧"
     OR = "∨"
     IMPLIES = "→"
+
+
+class QuantifierSymbols(Enum):
     FORALL = "∀"
     EXISTS = "∃"
 
-class MetaSymbols:
-    ENTAILS_SYNTACTICALLY = "⊢"
-    ENTAILS_SEMANTICALLY = "⊨" # with respect to interpretations
+
+class PredicateLogicSymbols(Enum):
+    TRUE = PropositionalLogicSymbols.TRUE.value
+    FALSE = PropositionalLogicSymbols.FALSE.value
+    NOT = PropositionalLogicSymbols.NOT.value
+    AND = PropositionalLogicSymbols.AND.value
+    OR = PropositionalLogicSymbols.OR.value
+    IMPLIES = PropositionalLogicSymbols.IMPLIES.value
+    FORALL = QuantifierSymbols.FORALL.value
+    EXISTS = QuantifierSymbols.EXISTS.value
+
+
+class MetalogicSymbols(Enum):
+    ENTAILS_SYNTACTICALLY = "⊢"  # turnstile
+    ENTAILS_SEMANTICALLY = "⊨"  # double turnstile. with respect to interpretations
+
 
 @dataclasses.dataclass(frozen=True)
 class Term:
@@ -21,19 +40,20 @@ class Term:
 
 @dataclasses.dataclass(frozen=True)
 class Variable(Term):
-    identifier: str
+    symbol: str
+    value: Any = None
 
     def __str__(self):
-        return f"{self.identifier}"
+        return f":{self.symbol}={self.value}:"
 
 
 @dataclasses.dataclass(frozen=True)
 class FunctionSymbol(Term):
-    identifier: str
+    symbol: str
     arguments: Tuple[Term]
 
     def __str__(self):
-        return f"{self.identifier}({','.join([str(arg) for arg in self.arguments])})"
+        return f"{self.symbol}({','.join([str(arg) for arg in self.arguments])})"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -46,7 +66,7 @@ class Formula:
     def substitute(self, original, substitute):
         return self
 
-    def is_free(self, term):
+    def is_free(self, variable):
         return True
 
 
@@ -75,8 +95,8 @@ class LogicFormula(Formula):
             self, formulas=[formula.substitute(original, substitute) for formula in self.formulas]
         )
 
-    def is_free(self, term):
-        return all(wff.is_free(term) for wff in self.formulas)
+    def is_free(self, variable):
+        return all(wff.is_free(variable) for wff in self.formulas)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -93,8 +113,8 @@ class BindingFormula(Formula):
             self, formulas=[formula.substitute(original, substitute) for formula in self.formulas]
         )
 
-    def is_free(self, term):
-        return all(wff.is_free(term) for wff in self.formulas)
+    def is_free(self, variable):
+        return (self.binding != variable) and all(wff.is_free(variable) for wff in self.formulas)
 
     def __str__(self):
         return f"{self.symbol}⟨{self.binding}|{','.join([str(arg) for arg in self.formulas])}⟩"
@@ -108,7 +128,7 @@ class Sequent:
     def __str__(self):
         return (
             ",".join(["'" + str(wff) + "'" for wff in self.antecedents])
-            + MetaSymbols.ENTAILS_SYNTACTICALLY
+            + MetalogicSymbols.ENTAILS_SYNTACTICALLY.value
             + ",".join(["'" + str(wff) + "'" for wff in self.consequents])
         )
 
@@ -149,6 +169,26 @@ class InferenceRules:
         return Sequent(tuple(sequent.antecedents[i] for i in permutation), sequent.consequents)
 
     @staticmethod
+    def l_permute_rightmost(sequent: Sequent, i: int):
+        return Sequent(
+            sequent.antecedents[:i]
+            + (sequent.antecedents[-1],)
+            + sequent.antecedents[i + 1 : -1]
+            + (sequent.antecedents[i],),
+            sequent.consequents,
+        )
+
+    @staticmethod
+    def r_permute_leftmost(sequent: Sequent, i: int):
+        return Sequent(
+            sequent.antecedents,
+            (sequent.consequents[i],)
+            + sequent.consequents[1:i]
+            + (sequent.consequents[0],)
+            + sequent.consequents[i + 1 : -1],
+        )
+
+    @staticmethod
     def r_permute(sequent: Sequent, permutation):
         if set(permutation) != set(range(len(sequent.consequents))):
             raise ValueError("r_permute N/A")
@@ -160,7 +200,7 @@ class InferenceRules:
         """∧L1"""
         return Sequent(
             antecedents=tuple(sequent.antecedents[:-1])
-            + (LogicFormula(PredicateLogicSymbols.AND, (sequent.antecedents[-1], formula,)),),
+            + (LogicFormula(PredicateLogicSymbols.AND.value, (sequent.antecedents[-1], formula,)),),
             consequents=sequent.consequents,
         )
 
@@ -169,7 +209,7 @@ class InferenceRules:
         """∧L2"""
         return Sequent(
             antecedents=tuple(sequent.antecedents[:-1])
-            + (LogicFormula(PredicateLogicSymbols.AND, (formula, sequent.antecedents[-1],)),),
+            + (LogicFormula(PredicateLogicSymbols.AND.value, (formula, sequent.antecedents[-1],)),),
             consequents=sequent.consequents,
         )
 
@@ -178,7 +218,7 @@ class InferenceRules:
         """∨R1"""
         return Sequent(
             antecedents=sequent.antecedents,
-            consequents=(LogicFormula(PredicateLogicSymbols.OR, (formula, sequent.consequents[0],)),)
+            consequents=(LogicFormula(PredicateLogicSymbols.OR.value, (formula, sequent.consequents[0],)),)
             + tuple(sequent.consequents[1:]),
         )
 
@@ -187,7 +227,7 @@ class InferenceRules:
         """∨R1"""
         return Sequent(
             antecedents=sequent.antecedents,
-            consequents=(LogicFormula(PredicateLogicSymbols.OR, (sequent.consequents[0], formula,)),)
+            consequents=(LogicFormula(PredicateLogicSymbols.OR.value, (sequent.consequents[0], formula,)),)
             + tuple(sequent.consequents[1:]),
         )
 
@@ -197,7 +237,7 @@ class InferenceRules:
         return Sequent(
             antecedents=tuple(lhs.antecedents[:-1])
             + tuple(rhs.antecedents[:-1])
-            + (LogicFormula(PredicateLogicSymbols.OR, (lhs.antecedents[-1], rhs.antecedents[-1],)),),
+            + (LogicFormula(PredicateLogicSymbols.OR.value, (lhs.antecedents[-1], rhs.antecedents[-1],)),),
             consequents=lhs.consequents + rhs.consequents,
         )
 
@@ -206,7 +246,7 @@ class InferenceRules:
         """∧R"""
         return Sequent(
             antecedents=lhs.antecedents + rhs.antecedents,
-            consequents=(LogicFormula(PredicateLogicSymbols.AND, (lhs.consequents[0], rhs.consequents[0],)),)
+            consequents=(LogicFormula(PredicateLogicSymbols.AND.value, (lhs.consequents[0], rhs.consequents[0],)),)
             + tuple(lhs.consequents[1:])
             + tuple(rhs.consequents[1:]),
         )
@@ -217,7 +257,7 @@ class InferenceRules:
         return Sequent(
             antecedents=tuple(lhs.antecedents[:-1])
             + tuple(rhs.antecedents[:-1])
-            + (LogicFormula(PredicateLogicSymbols.IMPLIES, (lhs.antecedents[-1], rhs.antecedents[-1],)),),
+            + (LogicFormula(PredicateLogicSymbols.IMPLIES.value, (lhs.antecedents[-1], rhs.antecedents[-1],)),),
             consequents=lhs.consequents + rhs.consequents,
         )
 
@@ -227,7 +267,7 @@ class InferenceRules:
         return Sequent(
             antecedents=tuple(sequent.antecedents[:-1]),
             consequents=(
-                LogicFormula(PredicateLogicSymbols.IMPLIES, (sequent.antecedents[-1], sequent.consequents[0],)),
+                LogicFormula(PredicateLogicSymbols.IMPLIES.value, (sequent.antecedents[-1], sequent.consequents[0],)),
             )
             + tuple(sequent.consequents[1:]),
         )
@@ -239,7 +279,8 @@ class InferenceRules:
             (crosses side right -> left)
         """
         return Sequent(
-            antecedents=sequent.antecedents + (LogicFormula(PredicateLogicSymbols.NOT, (sequent.consequents[0],)),),
+            antecedents=sequent.antecedents
+            + (LogicFormula(PredicateLogicSymbols.NOT.value, (sequent.consequents[0],)),),
             consequents=tuple(sequent.consequents[1:]),
         )
 
@@ -251,7 +292,8 @@ class InferenceRules:
         """
         return Sequent(
             antecedents=tuple(sequent.antecedents[:-1]),
-            consequents=(LogicFormula(PredicateLogicSymbols.NOT, (sequent.antecedents[-1],)),) + sequent.consequents,
+            consequents=(LogicFormula(PredicateLogicSymbols.NOT.value, (sequent.antecedents[-1],)),)
+            + sequent.consequents,
         )
 
     @staticmethod
@@ -295,7 +337,7 @@ class InferenceRules:
             ∃L
             Existential Generalisation
         """
-        return InferenceRules.l_binding(sequent, PredicateLogicSymbols.EXISTS, variable)
+        return InferenceRules.l_binding(sequent, PredicateLogicSymbols.EXISTS.value, variable)
 
     @staticmethod
     def l_forall(sequent: Sequent, variable: Variable):
@@ -303,7 +345,7 @@ class InferenceRules:
             ∀L
             Universal Generalisation
         """
-        return InferenceRules.l_binding(sequent, PredicateLogicSymbols.FORALL, variable)
+        return InferenceRules.l_binding(sequent, PredicateLogicSymbols.FORALL.value, variable)
 
     @staticmethod
     def r_exists(sequent: Sequent, variable: Variable):
@@ -311,7 +353,7 @@ class InferenceRules:
             ∃L
             Existential Generalisation
         """
-        return InferenceRules.r_binding(sequent, PredicateLogicSymbols.EXISTS, variable)
+        return InferenceRules.r_binding(sequent, PredicateLogicSymbols.EXISTS.value, variable)
 
     @staticmethod
     def r_forall(sequent: Sequent, variable: Variable):
@@ -319,4 +361,4 @@ class InferenceRules:
             ∀L
             Universal Generalisation
         """
-        return InferenceRules.r_binding(sequent, PredicateLogicSymbols.FORALL, variable)
+        return InferenceRules.r_binding(sequent, PredicateLogicSymbols.FORALL.value, variable)
