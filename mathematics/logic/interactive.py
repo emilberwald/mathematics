@@ -49,7 +49,11 @@ def get_formulas():
     terms = list()
     formulas = list()
     commands = ("(t)erm", "(a)tomic", "(l)ogical", "(b)inding", "(g)eneric", "(c)lear")
-    while (command := get_optional(f"terms:\t{terms}\nformulas:\t{formulas}\n{'|'.join(commands)}").lower()) :
+    while (
+        command := get_optional(
+            f"terms:\t{[str(term) for term in terms]}\nformulas:\t{[str(formula) for formula in formulas]}\n{'|'.join(commands)}"
+        ).lower()
+    ) :
         if command == "t":
             term = get_term()
             if term:
@@ -63,31 +67,49 @@ def get_formulas():
                     print(f"atomic formula does not allow: '{connective}'")
                     continue
                 included: Sequence[Term] = list()
+
                 for term in terms:
                     if get_optional(f"<Enter> to ignore\t'{term}'"):
                         included.append(term)
-                terms = [term for term in terms if term not in included]
+
                 formulas.append(AtomicFormula(connective, tuple(included)))
+                terms = [term for term in terms if term not in included]
                 break
         elif command == "l":
-            while op := get_required(f"{'|'.join(e.name.upper() for e in PredicateLogicSymbols)}").upper():
-                if op in (symbol.name.upper() for symbol in PredicateLogicSymbols):
+            logical_symbols = set(symbol.name.upper() for symbol in PredicateLogicSymbols) - set(
+                symbol.name.upper() for symbol in QuantifierSymbols
+            )
+            while op := get_optional(f"{'|'.join(logical_symbols)}").upper():
+                if op in logical_symbols:
                     connective = PredicateLogicSymbols[op].value
+                    min_connective_arity = min_arity(PredicateLogicSymbols[op])
                 else:
                     print(f"compound formula does not allow: '{op}'")
-                    continue
+                    break
+
                 included: Sequence[Formula] = list()
                 for formula in formulas:
                     if get_optional(f"<Enter> to ignore:\t'{formula}'"):
                         included.append(formula)
-                formulas = [formula for formula in formulas if formula not in included]
+
+                if min_connective_arity and not (len(included) >= min_connective_arity):
+                    print(
+                        f"compound formula arity wrong: '{len(included)}', should be at least: '{min_connective_arity}'."
+                    )
+                    continue
+
                 formulas.append(LogicFormula(connective, tuple(included)))
+                formulas = [formula for formula in formulas if formula not in included]
                 break
         elif command == "b":
-            while op := get_required(f"{'|'.join(e.name.upper() for e in QuantifierSymbols)}|...").upper():
+            if not formulas:
+                print(f"no formulas to bind to.")
+                continue
+
+            while op := get_optional(f"{'|'.join(e.name.upper() for e in QuantifierSymbols)}|...").upper():
                 if op in (symbol.name.upper() for symbol in QuantifierSymbols):
-                    connective = QuantifierSymbols[connective].value
-                elif op in (symbol.name for symbol in PredicateLogicSymbols):
+                    connective = QuantifierSymbols[op].value
+                elif op in (symbol.name for symbol in PredicateLogicSymbols) or not op:
                     print(f"binding formula does not allow: '{op}'")
                     continue
                 else:

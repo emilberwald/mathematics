@@ -28,6 +28,17 @@ class PredicateLogicSymbols(Enum):
     EXISTS = QuantifierSymbols.EXISTS.value
 
 
+def min_arity(symbol):
+    if symbol in (PredicateLogicSymbols.TRUE, PredicateLogicSymbols.FALSE,):
+        return 0
+    elif symbol in (PredicateLogicSymbols.NOT,PredicateLogicSymbols.FORALL, PredicateLogicSymbols.EXISTS,):
+        return 1
+    elif symbol in (PredicateLogicSymbols.AND, PredicateLogicSymbols.OR, PredicateLogicSymbols.IMPLIES,):
+        return 2
+    else:
+        return None
+
+
 class MetalogicSymbols(Enum):
     ENTAILS_SYNTACTICALLY = "⊢"  # turnstile
     ENTAILS_SEMANTICALLY = "⊨"  # double turnstile. with respect to interpretations
@@ -44,7 +55,7 @@ class Variable(Term):
     value: Any = None
 
     def __str__(self):
-        return f":{self.symbol}={self.value}:"
+        return f"({self.symbol}≜{self.value})"
 
 
 @dataclasses.dataclass(frozen=True)
