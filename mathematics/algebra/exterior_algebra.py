@@ -2,7 +2,8 @@ import itertools as _itertools
 import math as _math
 from ..algebra.matrix import Matrix
 from ..algebra.tensor import Tensor
-from ..number_theory.combinatorics import parity, apply_permutation, riffle_shuffles
+from ..algebra.clifford import Clifford
+from ..number_theory.combinatorics import parity, apply_permutation, riffle_shuffles, permutation_symbol
 
 # clifford algebra with Q = 0?
 
@@ -22,6 +23,29 @@ def exterior_product(a: Tensor, b: Tensor):
 
 # hodge star and so on
 
-# def hodge_star(g : Matrix, a : Tensor):
-#    k = len(a.keys())
-#    (*a)_{i_{k+1}, ..., i_n} = _math.sqrt(abs(Matrix.determinant(g)))/_math.gamma(k+1) * a^{i_1, ..., i_k} * \eps_{i_1, ..., i_k, ..., i_n}
+
+def hodge_star(g: Matrix, a: Clifford, n: int):
+    """
+    hodge_star [summary]
+
+    NOTE: this will not work at all unless the keys are tuples of integers zero indexed ... TODO: figure out how to generalise
+
+    :param g: Metric for V, note it is not for dual V*, if you want that you need to sharpen the metric (if I understood this? https://www.homotopico.com/2019/06/10/hodge-star.html)
+    :type g: Matrix
+    :param a: [description]
+    :type a: Clifford
+    :param volume: [description]
+    :type volume: Clifford
+    """
+    result = Clifford()
+    akeys = list(a.keys())
+    for permutation in _itertools.permutations(range(0, n)):
+        head = tuple(permutation[0 : len(akeys)])
+        tail = tuple(permutation[len(akeys) :])
+        if head in akeys:
+            result[tail] = (
+                1.0
+                / (_math.sqrt(abs(Matrix.determinant(g))) * _math.gamma(len(akeys) + 1) * _math.gamma(n - len(akeys)))
+                * a[head]
+                * permutation_symbol(*permutation)
+            )
