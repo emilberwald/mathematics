@@ -3,7 +3,7 @@ import math as _math
 from ..algebra.matrix import Matrix
 from ..algebra.tensor import Tensor
 from ..algebra.clifford import Clifford
-from ..number_theory.combinatorics import parity, apply_permutation, riffle_shuffles, permutation_symbol
+from ..number_theory.combinatorics import sign, parity, apply_permutation, riffle_shuffles, permutation_symbol
 
 # clifford algebra with Q = 0?
 
@@ -53,3 +53,14 @@ def hodge_star(g: Matrix, a: Clifford, n: int):
                 * a[head]
                 * permutation_symbol(*permutation)
             )
+
+
+def hodge_star_inverse(g: Matrix, a: Clifford, n: int):
+    k = len(a.keys())
+    s = sign(Matrix.determinant(g))
+    return ((-1) ** (k * (n - k))) * s * hodge_star(g, a, n)
+
+
+#def codifferential(g: Matrix, a: Clifford, n: int):
+#    k = len(a.keys())
+#    return (-1) ** k * hodge_star_inverse(g, exterior_derivative(hodge_star(g, a, n)), n)
