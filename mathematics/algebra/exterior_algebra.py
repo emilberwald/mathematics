@@ -45,7 +45,11 @@ def hodge_star(g: Matrix, a: Clifford, n: int):
         if head in akeys:
             result[tail] = (
                 1.0
-                / (_math.sqrt(abs(Matrix.determinant(g))) * _math.gamma(len(akeys) + 1) * _math.gamma(n - len(akeys) + 1))
+                / (
+                    _math.sqrt(abs(Matrix.determinant(g)))
+                    * _math.gamma(len(akeys) + 1)
+                    * _math.gamma(n - len(akeys) + 1)
+                )
                 * a[head]
                 * permutation_symbol(*permutation)
             )
