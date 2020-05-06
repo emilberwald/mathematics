@@ -26,7 +26,7 @@ class TestSequentCalculus:
         actual = LK.r_or_formula_r(actual, LogicFormula(PredicateLogicSymbols.NOT, (A,)))
         actual = LK.contract(actual)
         expected = Sequent(
-            tuple(), (LogicFormula(PredicateLogicSymbols.OR, (A, LogicFormula(PredicateLogicSymbols.NOT, (A,)))),)
+            tuple(), (LogicFormula(PredicateLogicSymbols.OR, (A, LogicFormula(PredicateLogicSymbols.NOT, (A,))),),),
         )
         assert actual == expected
 
@@ -43,12 +43,12 @@ class TestSequentCalculus:
         expected = Sequent(
             (
                 BindingFormula(
-                    PredicateLogicSymbols.EXISTS, y, (BindingFormula(PredicateLogicSymbols.FORALL, x, (p,)),)
+                    PredicateLogicSymbols.EXISTS, y, (BindingFormula(PredicateLogicSymbols.FORALL, x, (p,)),),
                 ),
             ),
             (
                 BindingFormula(
-                    PredicateLogicSymbols.FORALL, x, (BindingFormula(PredicateLogicSymbols.EXISTS, y, (p,)),)
+                    PredicateLogicSymbols.FORALL, x, (BindingFormula(PredicateLogicSymbols.EXISTS, y, (p,)),),
                 ),
             ),
         )

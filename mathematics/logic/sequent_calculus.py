@@ -31,7 +31,7 @@ class PredicateLogicSymbols(Enum):
 def min_arity(symbol):
     if symbol in (PredicateLogicSymbols.TRUE, PredicateLogicSymbols.FALSE,):
         return 0
-    elif symbol in (PredicateLogicSymbols.NOT,PredicateLogicSymbols.FORALL, PredicateLogicSymbols.EXISTS,):
+    elif symbol in (PredicateLogicSymbols.NOT, PredicateLogicSymbols.FORALL, PredicateLogicSymbols.EXISTS,):
         return 1
     elif symbol in (PredicateLogicSymbols.AND, PredicateLogicSymbols.OR, PredicateLogicSymbols.IMPLIES,):
         return 2
@@ -90,7 +90,7 @@ class AtomicFormula(Formula):
         return f"{self.symbol}[{','.join([str(arg) for arg in self.terms])}]"
 
     def substitute(self, original, substitute):
-        return dataclasses.replace(self, terms=[substitute if term == original else term for term in self.terms])
+        return dataclasses.replace(self, terms=[substitute if term == original else term for term in self.terms],)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -103,7 +103,7 @@ class LogicFormula(Formula):
 
     def substitute(self, original, substitute):
         return dataclasses.replace(
-            self, formulas=[formula.substitute(original, substitute) for formula in self.formulas]
+            self, formulas=[formula.substitute(original, substitute) for formula in self.formulas],
         )
 
     def is_free(self, variable):
@@ -121,7 +121,7 @@ class BindingFormula(Formula):
             raise ValueError("substitute N/A")
 
         return dataclasses.replace(
-            self, formulas=[formula.substitute(original, substitute) for formula in self.formulas]
+            self, formulas=[formula.substitute(original, substitute) for formula in self.formulas],
         )
 
     def is_free(self, variable):
@@ -170,7 +170,7 @@ class InferenceRules:
 
     @staticmethod
     def contract(sequent: Sequent):
-        return Sequent(tuple(sorted(set(sequent.antecedents))), tuple(sorted(set(sequent.consequents))))
+        return Sequent(tuple(sorted(set(sequent.antecedents))), tuple(sorted(set(sequent.consequents))),)
 
     @staticmethod
     def l_permute(sequent: Sequent, permutation):
@@ -248,7 +248,7 @@ class InferenceRules:
         return Sequent(
             antecedents=tuple(lhs.antecedents[:-1])
             + tuple(rhs.antecedents[:-1])
-            + (LogicFormula(PredicateLogicSymbols.OR.value, (lhs.antecedents[-1], rhs.antecedents[-1],)),),
+            + (LogicFormula(PredicateLogicSymbols.OR.value, (lhs.antecedents[-1], rhs.antecedents[-1],),),),
             consequents=lhs.consequents + rhs.consequents,
         )
 
@@ -257,7 +257,7 @@ class InferenceRules:
         """∧R"""
         return Sequent(
             antecedents=lhs.antecedents + rhs.antecedents,
-            consequents=(LogicFormula(PredicateLogicSymbols.AND.value, (lhs.consequents[0], rhs.consequents[0],)),)
+            consequents=(LogicFormula(PredicateLogicSymbols.AND.value, (lhs.consequents[0], rhs.consequents[0],),),)
             + tuple(lhs.consequents[1:])
             + tuple(rhs.consequents[1:]),
         )
@@ -268,7 +268,7 @@ class InferenceRules:
         return Sequent(
             antecedents=tuple(lhs.antecedents[:-1])
             + tuple(rhs.antecedents[:-1])
-            + (LogicFormula(PredicateLogicSymbols.IMPLIES.value, (lhs.antecedents[-1], rhs.antecedents[-1],)),),
+            + (LogicFormula(PredicateLogicSymbols.IMPLIES.value, (lhs.antecedents[-1], rhs.antecedents[-1],),),),
             consequents=lhs.consequents + rhs.consequents,
         )
 
@@ -278,7 +278,7 @@ class InferenceRules:
         return Sequent(
             antecedents=tuple(sequent.antecedents[:-1]),
             consequents=(
-                LogicFormula(PredicateLogicSymbols.IMPLIES.value, (sequent.antecedents[-1], sequent.consequents[0],)),
+                LogicFormula(PredicateLogicSymbols.IMPLIES.value, (sequent.antecedents[-1], sequent.consequents[0],),),
             )
             + tuple(sequent.consequents[1:]),
         )
