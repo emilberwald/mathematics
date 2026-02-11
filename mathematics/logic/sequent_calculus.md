@@ -125,7 +125,7 @@ CR ↦
 ( ..., ⊢,  'A'['y'/'x'] ,... )
    - 'x' is free in 'A', it is called the eigenvariable
    - 'y' no occurence of 'y' becomes bound after substitution
-   - 'y' must not occur free anywhere in the transformed/lower sequents
+   - 'y' must not occur free anywhere in the lower sequents
 ∀R ↦
 ( ..., ⊢,'∀xA'          ,... )
 
