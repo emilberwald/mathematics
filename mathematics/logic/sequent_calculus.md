@@ -53,16 +53,7 @@
 
 # SEQUENT CALCULUS RULES
 
-- L∧ ( ...,'A∧B',⊢,... ) ↦ ( ...,'A','B',⊢,... )
-- L∨ ( ...,'A∨B',⊢,... ) ↦ ( ...,'A',⊢,... ),( ...,'B',⊢,... )
-- L→ ( ...,'A→B',⊢,... ) ↦ ( ...,⊢,...,'A' ),( ...,'B',⊢,... )
-- L¬ ( ...,'¬A',⊢,... )  ↦ ( ...,⊢,...,'A' )
-- R∧ ( ...,⊢,...,'A∧B' ) ↦ ( ...,⊢,...,'A' ),( ...,⊢,...,'B' )
-- R∨ ( ...,⊢,...,'A∨B' ) ↦ ( ...,⊢,...,'A','B' )
-- R→ ( ...,⊢,...,'A→B' ) ↦ ( ...,'A',⊢,...,'B' )
-- R¬ ( ...,⊢,...,'¬A' )  ↦ ( ...,'A',⊢,... )
-- Axiom ('p','r',⊢,'q','r')
-
+```
 'x','y' : Variables
 A variable binding operator such as the existential and universal quantifiers binds the variable to a wff. It is no longer free when bound.
 't': Term
@@ -71,48 +62,181 @@ L,R : *sequence of wffs (0 or more)
 'A'['t'/'x'] replace every free occurence of 'x' with 't' in A, with the restriction that no occurence of any variable in 't' becomes bound in 'A'['t'/'x']
 NOTE: A[t/x] (t instead of x) is also written A[x←t]
 
-W: Weakening, C: Contraction, P: Permutation
+...: unchanged
+L: Left
+R: Right
+I: Introduction
+W: Weakening
+C: Contraction
+P: Permutation
+```
 
-Introduce:
-- I  	() ↦ ( 'A',⊢,'A' )
-Prune:
-- Cut	( L1,⊢,R1,'A' ),( 'A',L2,⊢,R2 ) ↦ ( L1,L2,⊢,R1,R2 )
-Combine:
-- ∨L 	( L1,'A',⊢,R1 ),( L2,'B'⊢,R2 ) ↦ ( L1,L2,'A∨B',⊢,R1,R2 )
-- ∧R 	( L1,⊢,'A',R1 ),( L2,⊢,'B',R2 ) ↦ ( L1,L2,⊢,'A∧B',R1,R2 )
-Cross side:
-- →L 	( L1,⊢,'A',R1 ),( L2,'B',⊢,R2 ) ↦ ( L1,L2,'A→B',⊢,R1,R2 )
-- →R 	( L1,'A',⊢,'B',R1 ) ↦ ( L1,⊢,'A→B',R1 )
-- ¬L 	( L1,⊢,'A',R1 ) ↦ ( L1,'¬A',⊢,R1 )
-- ¬R 	( L1,'A',⊢,R1 ) ↦ ( L1,⊢,'¬A',R1 )
-Rewrite left side:
-- ∧L1	( L1,'A',⊢,R1 ) ↦ ( L1,'A∧B',⊢,R1 )
-- ∧L2	( L1,'B',⊢,R1 ) ↦ ( L1,'A∧B',⊢,R1 )
-- ∀L 	( L1,'A'['t'/'x'],⊢,R1 ) ↦ ( L1,'∀xA',⊢,R1 )
+```
+- Axiom ('p','r',⊢'r','q')
+```
+
+```
+() 
+I ↦
+( 'A',⊢,'A' )
+
+( ...,   '¬A', ⊢   ,... )
+L¬ ↦
+( ..., ⊢ ,'A'      ,... )
+
+( ..., ⊢ ,'¬A'     ,... )
+R¬ ↦
+( ...,    'A', ⊢   ,... )
+
+( ..., ⊢ ,'A'      ,... )
+¬L ↦
+( ...,   '¬A', ⊢   ,... )
+
+( ...,    'A', ⊢   ,... )
+¬R ↦
+( ..., ⊢,'¬A'      ,... )
+
+( ...,   'A','A', ⊢ ,... )
+CL ↦
+( ...,   'A'    , ⊢ ,... )
+
+( ..., ⊢, 'A','A'   ,... )
+CR ↦
+( ..., ⊢, 'A'       ,... )
+
+( ..., ⊢,  'A'['t'/'x'] ,... )
    - 'x' is free in 'A', it is called the eigenvariable
    - 't' no occurence of any variable in 't' becomes bound after substitution
-- ∃L 	( L1,'A'['y'/'x'],⊢,R1 ) ↦ ( L1,'∃xA',⊢,R1 )
-  - 'x' is free in 'A', it is called the eigenvariable
-  - 'y' no occurence of 'y' becomes bound after substitution
-  - 'y' must not occur free anywhere in the lower sequents
-- WL 	( L1,⊢,R1 ) ↦ ( L1,'A',⊢,R1 )
-Rewrite right side:
-- ∨R1 	( L1,⊢,'A',R1 ) ↦ ( L1,⊢,'A∨B',R1 )
-- ∨R2 	( L1,⊢,'B',R1 ) ↦ ( L1,⊢,'A∨B',R1 )
-- ∃R 	( L1,⊢,'A'['t'/'x'],R1 ) ↦ ( L1,⊢,'∃xA',R1 )
+∃R ↦
+( ..., ⊢,'∃xA'          ,... )
+
+( ...,   'A'['t'/'x'],⊢ ,... )
    - 'x' is free in 'A', it is called the eigenvariable
    - 't' no occurence of any variable in 't' becomes bound after substitution
-- ∀R 	( L1,⊢,'A'['y'/'x'],R1 ) ↦ ( L1,⊢,'∀xA',R1 )
+∀L ↦
+( ..., '∀xA',         ⊢ ,... )
+
+( ..., ⊢,  'A'['y'/'x'] ,... )
    - 'x' is free in 'A', it is called the eigenvariable
    - 'y' no occurence of 'y' becomes bound after substitution
    - 'y' must not occur free anywhere in the transformed/lower sequents
-- WR 	( L1,⊢,R1 ) ↦ ( L1,⊢,'A',R1 )
-Contract:
-- CL 	( L1,'A','A',⊢,R1 ) ↦ ( L1,'A',⊢,R1 )
-- CR 	( L1,⊢,'A','A',R1 ) ↦ ( L1,⊢,'A',R1 )
-Permute:
-- PL 	( L1,'A','B',L2,⊢,R1 ) ↦ ( L1,'B','A',L2,⊢,R1 )
-- PR 	( L1,⊢,R1,'A','B',R2 ) ↦ ( L1,⊢,'B','A',R2 )
+∀R ↦
+( ..., ⊢,'∀xA'          ,... )
+
+( ...,   'A'['y'/'x'],⊢ ,... )
+  - 'x' is free in 'A', it is called the eigenvariable
+  - 'y' no occurence of 'y' becomes bound after substitution
+  - 'y' must not occur free anywhere in the lower sequents
+∃L ↦
+( ..., '∃xA',         ⊢ ,... )
+```
+
+```
+( ...,     ⊢    ,... )
+WL ↦
+( ..., 'A',⊢    ,... )
+
+( ...,     ⊢    ,... )
+WR ↦
+( ...,     ⊢,'A',... )
+
+( L1,      ⊢,'A',R1    ),
+(    L2,'A'⊢       ,R2 )
+Cut ↦
+( L1,L2,   ⊢,    R1,R2 )
+```
+
+```
+( ..., 'A',    ⊢   ,... )
+∧L1 ↦
+( ..., 'A ∧ B',⊢   ,... )
+
+( ...,     'B',⊢   ,... )
+∧L2 ↦
+( ..., 'A ∧ B',⊢   ,... )
+
+( ..., ⊢,'A'       ,... )
+∨R1 ↦
+( ..., ⊢,'A ∨ B'   ,... )
+
+( ..., ⊢,    'B'   ,... )
+∨R2 ↦
+( ..., ⊢,'A ∨ B'   ,... )
+```
+
+```
+( ...,'A','B',...,⊢,... )
+PL ↦
+( ...,'B','A',...,⊢,... )
+```
+
+```
+( ...,⊢,...,'A','B',... )
+PR ↦
+( ...,⊢,...,'B','A',... )
+```
+
+```
+( ...,  'A',⊢,'B',... )
+→R ↦
+( ...,⊢,'A  →  B',... )
+```
+
+```
+( ...,  'A  ∧  B', ⊢ ,... )
+L∧ ↦ 
+( ...,  'A' , 'B', ⊢ ,... )
+```
+
+```
+( ..., ⊢, 'A  ∨  B'  ,... )
+R∨ ↦
+( ..., ⊢, 'A' , 'B'  ,... )
+```
+
+```
+( ...,⊢,'A  →  B'  ,... )
+R→ ↦
+( ...,  'A',⊢,'B'  ,... )
+```
+
+
+```
+( L1,           ⊢,'A',R1    ),
+(    L2,    'B',⊢       ,R2 )
+→L ↦
+( L1,L2,'A → B',⊢,    R1,R2 )
+
+( ...,  'A → B',⊢,... )
+L→ ↦
+( ...,⊢,'A'      ,... ),
+( ...,      'B',⊢,... )
+```
+
+
+```
+( L1,   'A',    ⊢,R1    ),
+(    L2,    'B',⊢   ,R2 )
+∨L ↦
+( L1,L2,'A ∨ B',⊢,R1,R2 )
+
+( ...,  'A ∨ B',⊢,... )
+L∨ ↦
+( ...,  'A'    ,⊢,... ),
+( ...,      'B',⊢,... )
+```
+
+```
+( L1,   ⊢,'A'    ,R1    ),
+(    L2,⊢,    'B'   ,R2 )
+∧R ↦
+( L1,L2,⊢,'A ∧ B',R1,R2 )
+
+( ...  ,⊢,'A ∧ B',... )
+R∧ ↦
+( ...  ,⊢,'A'    ,... ),
+( ...  ,⊢,    'B',... )
+```
 
 Examples
 https://en.wikipedia.org/wiki/Sequent_calculus#Structural_rules
