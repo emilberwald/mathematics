@@ -151,7 +151,6 @@ WR ↦
 Cut ↦
 ( L1,L2,   ⊢,    R1,R2 )
 ```
-NOTE: (I, I, Cut, Cut), WL*, WR*, Cut to "undo"
 
 ```
 ( ...,  'A',       ⊢ ,... )
@@ -166,7 +165,6 @@ NOTE: (I, I, Cut, Cut), WL*, WR*, Cut to "undo"
 L∧ ↦ 
 ( ...,  'A' , 'B', ⊢ ,... )
 ```
-NOTE: (I, I, Cut, Cut), WL*, WR*, Cut to "undo"
 
 ```
 ( ..., ⊢, 'A'        ,... )
@@ -181,7 +179,6 @@ NOTE: (I, I, Cut, Cut), WL*, WR*, Cut to "undo"
 R∨ ↦
 ( ..., ⊢, 'A' , 'B'  ,... )
 ```
-NOTE: (I, I, Cut, Cut), WL*, WR*, Cut to "undo"
 
 ```
 ( ...,'A','B',...,⊢,... )
